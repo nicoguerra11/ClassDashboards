@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
-import Login from './components/Login'
-import Register from './components/Register'
-import Dashboard from './components/Dashboard'
-import AdminPanel from './components/AdminPanel'
+import Login from './components/Login/Login'
+import Register from './components/Register/Register'
+import Dashboard from './components/Dashboard/Dashboard'
+import AdminPanel from './components/Admin/AdminPanel'
 import './App.css'
 
 function App() {

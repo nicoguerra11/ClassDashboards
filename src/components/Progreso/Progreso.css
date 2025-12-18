@@ -1,0 +1,302 @@
+.progreso {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.progreso-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.progreso-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.progreso-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: rgba(99, 102, 241, 0.12);
+  color: #5b5ef0;
+  display: grid;
+  place-items: center;
+}
+
+.progreso-title h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.progreso-title p {
+  margin: 2px 0 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.progreso-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filter, .search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.04);
+}
+
+.filter select, .search input, .year-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  color: #111827;
+}
+
+.year-input {
+  width: 92px;
+}
+
+.search input {
+  width: 220px;
+}
+
+.progreso-error {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.progreso-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(230px, 1fr));
+  gap: 14px;
+}
+
+.progreso-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 14px 14px;
+  box-shadow: 0 18px 36px rgba(17, 24, 39, 0.05);
+}
+
+.pc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pc-label {
+  margin: 0;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pc-value {
+  margin: 4px 0 0;
+  font-size: 22px;
+  font-weight: 900;
+  color: #111827;
+}
+
+.pc-value.pos { color: #047857; }
+.pc-value.neg { color: #b91c1c; }
+
+.pc-sub {
+  margin: 6px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.pc-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+}
+
+.pc-badge.ok {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.pc-badge.warn {
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+}
+
+.pc-badge.info {
+  background: rgba(59, 130, 246, 0.14);
+  color: #2563eb;
+}
+
+.pc-badge.danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.progressbar {
+  margin-top: 12px;
+  height: 10px;
+  background: #f3f4f6;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progressbar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #a78bfa);
+  border-radius: 999px;
+}
+
+.progreso-lists {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.list-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 18px 36px rgba(17, 24, 39, 0.05);
+}
+
+.list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.list-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 900;
+  color: #111827;
+}
+
+.pill {
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.pill.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 360px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid #f1f5f9;
+  background: #fbfdff;
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.row-name {
+  font-weight: 700;
+  color: #111827;
+}
+
+.tag {
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.tag.ok {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.tag.danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+}
+
+.empty {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px dashed #e5e7eb;
+  background: #fafafa;
+  color: #6b7280;
+}
+
+.empty.ok {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #065f46;
+}
+
+.progreso-loading {
+  display: grid;
+  place-items: center;
+  min-height: 240px;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .progreso-cards {
+    grid-template-columns: repeat(2, minmax(230px, 1fr));
+  }
+}
+
+@media (max-width: 800px) {
+  .progreso-lists {
+    grid-template-columns: 1fr;
+  }
+  .search input {
+    width: 180px;
+  }
+}
+
+@media (max-width: 520px) {
+  .progreso-cards {
+    grid-template-columns: 1fr;
+  }
+  .year-input {
+    width: 80px;
+  }
+}
