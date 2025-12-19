@@ -13,10 +13,21 @@ function Gastos({ profesorId }) {
   const today = new Date().toISOString().slice(0, 10)
 
   const [formData, setFormData] = useState({
-    concepto: '',
+    descripcion: '',
     monto: '',
+    categoria: 'Material',
     fecha: today
   })
+
+  // Categorías predefinidas
+  const categorias = [
+    'Material',
+    'Alquiler',
+    'Servicios',
+    'Transporte',
+    'Equipamiento',
+    'Otro'
+  ]
 
   useEffect(() => {
     load()
@@ -36,13 +47,13 @@ function Gastos({ profesorId }) {
   }
 
   const openModal = () => {
-    setFormData({ concepto: '', monto: '', fecha: today })
+    setFormData({ descripcion: '', monto: '', categoria: 'Material', fecha: today })
     setShowModal(true)
   }
 
   const closeModal = () => {
     setShowModal(false)
-    setFormData({ concepto: '', monto: '', fecha: today })
+    setFormData({ descripcion: '', monto: '', categoria: 'Material', fecha: today })
   }
 
   const addGasto = async (e) => {
@@ -52,8 +63,9 @@ function Gastos({ profesorId }) {
       .from('gastos')
       .insert([{
         profesor_id: profesorId,
-        concepto: formData.concepto,
+        descripcion: formData.descripcion,
         monto: Number(formData.monto),
+        categoria: formData.categoria,
         fecha: formData.fecha
       }])
 
@@ -76,7 +88,8 @@ function Gastos({ profesorId }) {
     const s = searchTerm.trim().toLowerCase()
     if (!s) return gastos
     return gastos.filter(g =>
-      (g.concepto || '').toLowerCase().includes(s)
+      (g.descripcion || '').toLowerCase().includes(s) ||
+      (g.categoria || '').toLowerCase().includes(s)
     )
   }, [gastos, searchTerm])
 
@@ -112,7 +125,7 @@ function Gastos({ profesorId }) {
           <input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar por concepto..."
+            placeholder="Buscar por descripción o categoría..."
           />
         </div>
 
@@ -127,7 +140,10 @@ function Gastos({ profesorId }) {
         {filtered.map(g => (
           <div key={g.id} className="expense-row">
             <div className="expense-left">
-              <div className="expense-concept">{g.concepto}</div>
+              <div className="expense-concept">
+                {g.descripcion}
+                <span className="expense-category">{g.categoria}</span>
+              </div>
               <div className="expense-date">
                 <Calendar size={14} />
                 <span>{new Date(g.fecha).toLocaleDateString('es-UY')}</span>
@@ -164,13 +180,26 @@ function Gastos({ profesorId }) {
 
             <form className="ph-form" onSubmit={addGasto}>
               <div className="ph-form-group">
-                <label>Concepto *</label>
+                <label>Descripción *</label>
                 <input
-                  value={formData.concepto}
-                  onChange={(e) => setFormData({ ...formData, concepto: e.target.value })}
+                  value={formData.descripcion}
+                  onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
                   placeholder="Ej: Alquiler del local"
                   required
                 />
+              </div>
+
+              <div className="ph-form-group">
+                <label>Categoría *</label>
+                <select
+                  value={formData.categoria}
+                  onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                  required
+                >
+                  {categorias.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="expenses-row">
@@ -179,7 +208,7 @@ function Gastos({ profesorId }) {
                   <input
                     type="number"
                     min="0"
-                    step="1"
+                    step="0.01"
                     value={formData.monto}
                     onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
                     placeholder="Ej: 3000"

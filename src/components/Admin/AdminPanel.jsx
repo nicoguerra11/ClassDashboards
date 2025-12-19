@@ -11,7 +11,9 @@ import {
   Search,
   AlertCircle,
   RefreshCw,
-  Trash2
+  Trash2,
+  Ban,
+  Check
 } from 'lucide-react'
 import './AdminPanel.css'
 
@@ -94,6 +96,27 @@ function AdminPanel() {
     }
   }
 
+  const deshabilitarProfesor = async (profesorId, deshabilitado) => {
+    const accion = deshabilitado ? 'habilitar' : 'deshabilitar'
+    if (!confirm(`¿Estás seguro de ${accion} esta cuenta?`)) return
+
+    try {
+      const { error } = await supabase
+        .from('profesores')
+        .update({
+          deshabilitado: !deshabilitado
+        })
+        .eq('id', profesorId)
+
+      if (error) throw error
+      alert(deshabilitado ? '✅ Cuenta habilitada' : '🚫 Cuenta deshabilitada')
+      loadProfesores()
+    } catch (error) {
+      console.error(`Error al ${accion} profesor:`, error)
+      alert(`Error al ${accion} profesor: ` + error.message)
+    }
+  }
+
   const eliminarProfesor = async (profesorId) => {
     if (!confirm('⚠️ ¿Estás seguro de eliminar este profesor? Esta acción es irreversible.')) return
 
@@ -165,15 +188,17 @@ function AdminPanel() {
       p.apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.email.toLowerCase().includes(searchTerm.toLowerCase())
 
-    if (filter === 'verificados') return matchesSearch && p.verificado
-    if (filter === 'pendientes') return matchesSearch && !p.verificado
+    if (filter === 'verificados') return matchesSearch && p.verificado && !p.deshabilitado
+    if (filter === 'pendientes') return matchesSearch && !p.verificado && !p.deshabilitado
+    if (filter === 'deshabilitados') return matchesSearch && p.deshabilitado
     return matchesSearch
   })
 
   const stats = {
     total: profesores.length,
-    verificados: profesores.filter(p => p.verificado).length,
-    pendientes: profesores.filter(p => !p.verificado).length
+    verificados: profesores.filter(p => p.verificado && !p.deshabilitado).length,
+    pendientes: profesores.filter(p => !p.verificado && !p.deshabilitado).length,
+    deshabilitados: profesores.filter(p => p.deshabilitado).length
   }
 
   return (
@@ -204,7 +229,6 @@ function AdminPanel() {
       </header>
 
       <main className="admin-main">
-        {/* Stats */}
         <div className="admin-stats">
           <div className="admin-stat-card blue">
             <div className="admin-stat-icon">
@@ -235,9 +259,18 @@ function AdminPanel() {
               <strong>{stats.pendientes}</strong>
             </div>
           </div>
+
+          <div className="admin-stat-card red">
+            <div className="admin-stat-icon">
+              <Ban size={26} />
+            </div>
+            <div>
+              <span>Deshabilitados</span>
+              <strong>{stats.deshabilitados}</strong>
+            </div>
+          </div>
         </div>
 
-        {/* Filters */}
         <div className="admin-filters">
           <div className="admin-search">
             <Search size={18} />
@@ -268,10 +301,15 @@ function AdminPanel() {
             >
               Pendientes
             </button>
+            <button
+              className={`admin-filter-btn ${filter === 'deshabilitados' ? 'active' : ''}`}
+              onClick={() => setFilter('deshabilitados')}
+            >
+              Deshabilitados
+            </button>
           </div>
         </div>
 
-        {/* List */}
         {loading ? (
           <div className="admin-loading">
             <div className="admin-loader" />
@@ -280,12 +318,17 @@ function AdminPanel() {
         ) : (
           <div className="admin-list">
             {filteredProfesores.map((profesor) => (
-              <div key={profesor.id} className="admin-card">
+              <div key={profesor.id} className={`admin-card ${profesor.deshabilitado ? 'disabled' : ''}`}>
                 <div className="admin-card-left">
                   <div className="admin-card-top">
                     <h3>{profesor.nombre} {profesor.apellido}</h3>
 
-                    {profesor.verificado ? (
+                    {profesor.deshabilitado ? (
+                      <span className="admin-pill disabled">
+                        <Ban size={16} />
+                        Deshabilitado
+                      </span>
+                    ) : profesor.verificado ? (
                       <span className="admin-pill ok">
                         <CheckCircle size={16} />
                         Verificado
@@ -319,16 +362,30 @@ function AdminPanel() {
                 </div>
 
                 <div className="admin-card-actions">
-                  {profesor.verificado ? (
-                    <button className="admin-action-btn warn" onClick={() => revocarVerificacion(profesor.id)}>
-                      <XCircle size={18} />
-                      Revocar
+                  {profesor.deshabilitado ? (
+                    <button className="admin-action-btn success" onClick={() => deshabilitarProfesor(profesor.id, true)}>
+                      <Check size={18} />
+                      Habilitar
                     </button>
                   ) : (
-                    <button className="admin-action-btn ok" onClick={() => verificarProfesor(profesor.id)}>
-                      <CheckCircle size={18} />
-                      Verificar
-                    </button>
+                    <>
+                      {profesor.verificado ? (
+                        <button className="admin-action-btn warn" onClick={() => revocarVerificacion(profesor.id)}>
+                          <XCircle size={18} />
+                          Revocar
+                        </button>
+                      ) : (
+                        <button className="admin-action-btn ok" onClick={() => verificarProfesor(profesor.id)}>
+                          <CheckCircle size={18} />
+                          Verificar
+                        </button>
+                      )}
+
+                      <button className="admin-action-btn disable" onClick={() => deshabilitarProfesor(profesor.id, false)}>
+                        <Ban size={18} />
+                        Deshabilitar
+                      </button>
+                    </>
                   )}
 
                   <button className="admin-action-btn danger" onClick={() => eliminarProfesor(profesor.id)}>

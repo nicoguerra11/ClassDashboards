@@ -1,4 +1,8 @@
-.expenses-page{ display:flex; flex-direction:column; gap: 1.25rem; }
+.expenses-page{ 
+  display:flex; 
+  flex-direction:column; 
+  gap: 1.25rem; 
+}
 
 .expenses-header{
   display:flex;
@@ -6,8 +10,16 @@
   justify-content:space-between;
   gap: 1rem;
 }
-.expenses-header h1{ font-size: 2rem; font-weight: 800; color:#1a202c; margin:0; }
-.expenses-header p{ margin:.35rem 0 0; color:#718096; }
+.expenses-header h1{ 
+  font-size: 2rem; 
+  font-weight: 800; 
+  color:#1a202c; 
+  margin:0; 
+}
+.expenses-header p{ 
+  margin:.35rem 0 0; 
+  color:#718096; 
+}
 
 .expenses-top{
   display:flex;
@@ -27,7 +39,9 @@
   color:#4a5568;
   font-weight: 900;
 }
-.expenses-total strong{ color:#1a202c; }
+.expenses-total strong{ 
+  color:#1a202c; 
+}
 
 .expenses-list{
   display:flex;
@@ -60,6 +74,19 @@
   font-weight: 950;
   color:#1a202c;
   font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.expense-category {
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #7c3aed;
 }
 .expense-date{
   display:flex;
@@ -91,8 +118,12 @@
   display:flex;
   align-items:center;
   justify-content:center;
+  transition: all 0.2s;
 }
-.expense-delete:hover{ background:#ffe3e3; }
+.expense-delete:hover{ 
+  background:#ffe3e3; 
+  transform: scale(1.05);
+}
 
 .expenses-row{
   display:grid;
@@ -100,10 +131,56 @@
   gap: .85rem;
 }
 
-@media (max-width: 768px){
-  .expenses-top{ flex-direction: column; }
+/* Asegurar visibilidad de números e inputs */
+.ph-form-group input[type="number"],
+.ph-form-group input[type="date"],
+.ph-form-group input[type="text"] {
+  color: #1a202c !important;
+  -webkit-text-fill-color: #1a202c !important;
+  opacity: 1 !important;
+  font-weight: 600;
 }
+
+.ph-form-group input[type="number"]:focus,
+.ph-form-group input[type="date"]:focus,
+.ph-form-group input[type="text"]:focus {
+  color: #1a202c !important;
+  -webkit-text-fill-color: #1a202c !important;
+}
+
+/* Dropdowns personalizados mejorados */
+.ph-form-group select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 18px;
+  padding-right: 2.75rem;
+  cursor: pointer;
+  color: #1a202c !important;
+  -webkit-text-fill-color: #1a202c !important;
+  font-weight: 600;
+}
+
+.ph-form-group select option {
+  padding: 0.75rem;
+  background: white;
+  color: #1a202c;
+  font-weight: 600;
+}
+
+@media (max-width: 768px){
+  .expenses-top{ 
+    flex-direction: column; 
+  }
+}
+
 @media (max-width: 640px){
-  .expenses-header{ flex-direction: column; align-items:flex-start; }
-  .expenses-row{ grid-template-columns: 1fr; }
+  .expenses-header{ 
+    flex-direction: column; 
+    align-items:flex-start; 
+  }
+  .expenses-row{ 
+    grid-template-columns: 1fr; 
+  }
 }

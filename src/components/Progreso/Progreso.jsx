@@ -34,7 +34,6 @@ function Progreso({ profesorId }) {
             .eq('profesor_id', profesorId)
             .order('apellido', { ascending: true }),
 
-          // Pagos: el profesor "sube" el pago => filtro por profesor_id + mes + anio
           supabase
             .from('pagos')
             .select('id, estudiante_id, monto, mes, anio, created_at')
@@ -42,13 +41,10 @@ function Progreso({ profesorId }) {
             .eq('mes', mes)
             .eq('anio', anio),
 
-          // Gastos: mismo criterio
           supabase
             .from('gastos')
-            .select('id, monto, mes, anio, created_at, descripcion')
+            .select('id, monto, fecha, created_at, descripcion, categoria')
             .eq('profesor_id', profesorId)
-            .eq('mes', mes)
-            .eq('anio', anio)
         ])
 
       if (e1) throw e1
@@ -57,7 +53,13 @@ function Progreso({ profesorId }) {
 
       setEstudiantes(est || [])
       setPagosMes(pagos || [])
-      setGastosMes(gastos || [])
+      
+      // Filtrar gastos por mes/año manualmente ya que la fecha es tipo date
+      const gastosDelMes = (gastos || []).filter(g => {
+        const fechaGasto = new Date(g.fecha)
+        return fechaGasto.getMonth() + 1 === mes && fechaGasto.getFullYear() === anio
+      })
+      setGastosMes(gastosDelMes)
     } catch (err) {
       console.error(err)
       setError('No pude cargar el progreso. Revisá que existan las tablas y columnas esperadas.')

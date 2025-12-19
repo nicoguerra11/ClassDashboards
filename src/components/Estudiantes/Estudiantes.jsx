@@ -10,7 +10,10 @@ import {
   XCircle,
   Mail,
   Phone,
-  Users
+  Users,
+  History,
+  Calendar,
+  DollarSign
 } from 'lucide-react'
 import './Estudiantes.css'
 
@@ -19,8 +22,12 @@ function Estudiantes({ profesorId }) {
   const [grupos, setGrupos] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [showModal, setShowModal] = useState(false)
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
+  const [selectedStudent, setSelectedStudent] = useState(null)
+  const [studentHistory, setStudentHistory] = useState([])
   const [editingEstudiante, setEditingEstudiante] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [filterTab, setFilterTab] = useState('todos') // 'todos', 'pagaron', 'pendientes'
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
@@ -61,6 +68,19 @@ function Estudiantes({ profesorId }) {
     if (!error && data) setGrupos(data)
   }
 
+  const loadStudentHistory = async (estudianteId) => {
+    const { data, error } = await supabase
+      .from('pagos')
+      .select('*')
+      .eq('estudiante_id', estudianteId)
+      .order('anio', { ascending: false })
+      .order('mes', { ascending: false })
+
+    if (!error && data) {
+      setStudentHistory(data)
+    }
+  }
+
   const hasPagadoEsteMes = (pagos) => {
     if (!pagos || pagos.length === 0) return false
     const ahora = new Date()
@@ -69,15 +89,27 @@ function Estudiantes({ profesorId }) {
     return pagos.some(p => p.mes === mesActual && p.anio === anioActual)
   }
 
-  const filteredEstudiantes = estudiantes.filter(e => {
-    const s = searchTerm.toLowerCase()
-    return (
-      e.nombre.toLowerCase().includes(s) ||
-      e.apellido.toLowerCase().includes(s) ||
-      (e.email && e.email.toLowerCase().includes(s)) ||
-      (e.grupos && e.grupos.nombre.toLowerCase().includes(s))
-    )
-  })
+  const getFilteredEstudiantes = () => {
+    let filtered = estudiantes.filter(e => {
+      const s = searchTerm.toLowerCase()
+      return (
+        e.nombre.toLowerCase().includes(s) ||
+        e.apellido.toLowerCase().includes(s) ||
+        (e.email && e.email.toLowerCase().includes(s)) ||
+        (e.grupos && e.grupos.nombre.toLowerCase().includes(s))
+      )
+    })
+
+    if (filterTab === 'pagaron') {
+      filtered = filtered.filter(e => hasPagadoEsteMes(e.pagos))
+    } else if (filterTab === 'pendientes') {
+      filtered = filtered.filter(e => !hasPagadoEsteMes(e.pagos))
+    }
+
+    return filtered
+  }
+
+  const filteredEstudiantes = getFilteredEstudiantes()
 
   const openModal = (estudiante = null) => {
     if (estudiante) {
@@ -112,6 +144,18 @@ function Estudiantes({ profesorId }) {
       telefono: '',
       grupo_id: ''
     })
+  }
+
+  const openHistoryModal = async (estudiante) => {
+    setSelectedStudent(estudiante)
+    await loadStudentHistory(estudiante.id)
+    setShowHistoryModal(true)
+  }
+
+  const closeHistoryModal = () => {
+    setShowHistoryModal(false)
+    setSelectedStudent(null)
+    setStudentHistory([])
   }
 
   const handleSubmit = async (e) => {
@@ -164,6 +208,11 @@ function Estudiantes({ profesorId }) {
     }
   }
 
+  const getMesNombre = (mes) => {
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+    return meses[mes - 1] || mes
+  }
+
   if (loading) {
     return (
       <div className="students-loading">
@@ -174,6 +223,9 @@ function Estudiantes({ profesorId }) {
       </div>
     )
   }
+
+  const pagaron = estudiantes.filter(e => hasPagadoEsteMes(e.pagos)).length
+  const pendientes = estudiantes.length - pagaron
 
   return (
     <div className="students">
@@ -187,6 +239,34 @@ function Estudiantes({ profesorId }) {
         <button className="students-primary-btn" onClick={() => openModal()}>
           <Plus size={18} />
           Nuevo Estudiante
+        </button>
+      </div>
+
+      {/* Filter Tabs */}
+      <div className="students-filter-tabs">
+        <button
+          className={`filter-tab ${filterTab === 'todos' ? 'active' : ''}`}
+          onClick={() => setFilterTab('todos')}
+        >
+          <Users size={18} />
+          Todos
+          <span className="tab-badge">{estudiantes.length}</span>
+        </button>
+        <button
+          className={`filter-tab ${filterTab === 'pagaron' ? 'active' : ''}`}
+          onClick={() => setFilterTab('pagaron')}
+        >
+          <CheckCircle size={18} />
+          Pagaron
+          <span className="tab-badge success">{pagaron}</span>
+        </button>
+        <button
+          className={`filter-tab ${filterTab === 'pendientes' ? 'active' : ''}`}
+          onClick={() => setFilterTab('pendientes')}
+        >
+          <XCircle size={18} />
+          Pendientes
+          <span className="tab-badge danger">{pendientes}</span>
         </button>
       </div>
 
@@ -255,6 +335,10 @@ function Estudiantes({ profesorId }) {
               </div>
 
               <div className="student-actions">
+                <button className="student-btn history" onClick={() => openHistoryModal(estudiante)} title="Ver historial">
+                  <History size={16} />
+                  Historial
+                </button>
                 <button className="student-btn edit" onClick={() => openModal(estudiante)}>
                   <Edit2 size={16} />
                   Editar
@@ -274,12 +358,16 @@ function Estudiantes({ profesorId }) {
           <p>
             {searchTerm
               ? 'No se encontraron estudiantes con ese criterio de búsqueda.'
-              : 'Aún no tienes estudiantes. ¡Agrega tu primer estudiante!'}
+              : filterTab === 'todos'
+              ? 'Aún no tienes estudiantes. ¡Agrega tu primer estudiante!'
+              : filterTab === 'pagaron'
+              ? 'Ningún estudiante ha pagado este mes aún.'
+              : 'No hay estudiantes con pagos pendientes.'}
           </p>
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal Crear/Editar */}
       {showModal && (
         <div className="students-modal-overlay" onMouseDown={closeModal}>
           <div className="students-modal" onMouseDown={(e) => e.stopPropagation()}>
@@ -333,15 +421,18 @@ function Estudiantes({ profesorId }) {
 
               <div className="students-field">
                 <label>Grupo</label>
-                <select
-                  value={formData.grupo_id}
-                  onChange={(e) => setFormData({ ...formData, grupo_id: e.target.value })}
-                >
-                  <option value="">Sin grupo</option>
-                  {grupos.map((g) => (
-                    <option key={g.id} value={g.id}>{g.nombre}</option>
-                  ))}
-                </select>
+                <div className="custom-select-wrapper">
+                  <select
+                    value={formData.grupo_id}
+                    onChange={(e) => setFormData({ ...formData, grupo_id: e.target.value })}
+                    className="custom-select"
+                  >
+                    <option value="">Sin grupo</option>
+                    {grupos.map((g) => (
+                      <option key={g.id} value={g.id}>{g.nombre}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="students-form-actions">
@@ -353,6 +444,47 @@ function Estudiantes({ profesorId }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Historial */}
+      {showHistoryModal && selectedStudent && (
+        <div className="students-modal-overlay" onMouseDown={closeHistoryModal}>
+          <div className="students-modal history-modal" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="students-modal-header">
+              <h2>
+                <History size={24} />
+                Historial de {selectedStudent.nombre} {selectedStudent.apellido}
+              </h2>
+              <button className="students-icon-btn" onClick={closeHistoryModal} aria-label="Cerrar">
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="history-content">
+              {studentHistory.length === 0 ? (
+                <div className="history-empty">
+                  <Calendar size={48} />
+                  <p>Este estudiante no tiene pagos registrados aún.</p>
+                </div>
+              ) : (
+                <div className="history-list">
+                  {studentHistory.map((pago) => (
+                    <div key={pago.id} className="history-item">
+                      <div className="history-date">
+                        <Calendar size={20} />
+                        <span className="history-month">{getMesNombre(pago.mes)} {pago.anio}</span>
+                      </div>
+                      <div className="history-amount">
+                        <DollarSign size={18} />
+                        <span>${Number(pago.monto).toLocaleString('es-UY')}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
