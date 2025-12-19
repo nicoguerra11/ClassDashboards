@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../supabaseClient'
 import { Search, Calendar, DollarSign, Plus, Trash2, X } from 'lucide-react'
+import SearchableStudentSelect from '../Common/SearchableStudentSelect'
+import CustomSelect from '../Common/CustomSelect'
 import './Pagos.css'
 
 function Pagos({ profesorId }) {
@@ -180,31 +182,23 @@ function Pagos({ profesorId }) {
       <div className="pagos-filters">
         <div className="pagos-date-picker">
           <Calendar size={20} />
-          <div className="custom-select-wrapper">
-            <select
-              className="custom-select"
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            >
-              {[...Array(12)].map((_, i) => (
-                <option key={i + 1} value={i + 1}>
-                  {getMesNombre(i + 1)}
-                </option>
-              ))}
-            </select>
-          </div>
+          <CustomSelect
+            value={selectedMonth}
+            onChange={(value) => setSelectedMonth(value)}
+            options={[...Array(12)].map((_, i) => ({
+              value: i + 1,
+              label: getMesNombre(i + 1)
+            }))}
+          />
 
-          <div className="custom-select-wrapper">
-            <select
-              className="custom-select"
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-            >
-              {[2023, 2024, 2025, 2026].map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
+          <CustomSelect
+            value={selectedYear}
+            onChange={(value) => setSelectedYear(value)}
+            options={[2023, 2024, 2025, 2026].map(y => ({
+              value: y,
+              label: y.toString()
+            }))}
+          />
         </div>
 
         <div className="pagos-search">
@@ -289,22 +283,11 @@ function Pagos({ profesorId }) {
             <form className="pagos-form" onSubmit={handleSubmit}>
               <div className="pagos-field">
                 <label>Estudiante *</label>
-                <div className="custom-select-wrapper">
-                  <select
-                    className="custom-select"
-                    value={formData.estudiante_id}
-                    onChange={(e) => setFormData({ ...formData, estudiante_id: e.target.value })}
-                    required
-                  >
-                    <option value="">Seleccioná un estudiante</option>
-                    {estudiantes.map((e) => (
-                      <option key={e.id} value={e.id}>
-                        {e.nombre} {e.apellido}
-                        {e.grupos ? ` - ${e.grupos.nombre}` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <SearchableStudentSelect
+                  estudiantes={estudiantes}
+                  value={formData.estudiante_id}
+                  onChange={(value) => setFormData({ ...formData, estudiante_id: value })}
+                />
               </div>
 
               <div className="pagos-field">
@@ -326,36 +309,26 @@ function Pagos({ profesorId }) {
               <div className="pagos-form-row">
                 <div className="pagos-field">
                   <label>Mes *</label>
-                  <div className="custom-select-wrapper">
-                    <select
-                      className="custom-select"
-                      value={formData.mes}
-                      onChange={(e) => setFormData({ ...formData, mes: Number(e.target.value) })}
-                      required
-                    >
-                      {[...Array(12)].map((_, i) => (
-                        <option key={i + 1} value={i + 1}>
-                          {getMesNombre(i + 1)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <CustomSelect
+                    value={formData.mes}
+                    onChange={(value) => setFormData({ ...formData, mes: value })}
+                    options={[...Array(12)].map((_, i) => ({
+                      value: i + 1,
+                      label: getMesNombre(i + 1)
+                    }))}
+                  />
                 </div>
 
                 <div className="pagos-field">
                   <label>Año *</label>
-                  <div className="custom-select-wrapper">
-                    <select
-                      className="custom-select"
-                      value={formData.anio}
-                      onChange={(e) => setFormData({ ...formData, anio: Number(e.target.value) })}
-                      required
-                    >
-                      {[2023, 2024, 2025, 2026].map(y => (
-                        <option key={y} value={y}>{y}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <CustomSelect
+                    value={formData.anio}
+                    onChange={(value) => setFormData({ ...formData, anio: value })}
+                    options={[2023, 2024, 2025, 2026].map(y => ({
+                      value: y,
+                      label: y.toString()
+                    }))}
+                  />
                 </div>
               </div>
 
