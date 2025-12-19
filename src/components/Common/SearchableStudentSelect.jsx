@@ -1,134 +1,174 @@
-import { useState, useRef, useEffect } from 'react'
-import { Search, ChevronDown, User, Users as UsersIcon } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Search, ChevronDown, User } from 'lucide-react'
 import './SearchableStudentSelect.css'
 
-function SearchableStudentSelect({ 
-  estudiantes = [], 
-  value, 
-  onChange, 
-  placeholder = 'Buscar estudiante...', 
-  disabled = false 
+function normalize(s) {
+  return (s || '').toString().trim().toLowerCase()
+}
+
+function startsWithAny(fullName, nombre, apellido, q) {
+  if (!q) return false
+  return (
+    fullName.startsWith(q) ||
+    nombre.startsWith(q) ||
+    apellido.startsWith(q)
+  )
+}
+
+export default function SearchableStudentSelect({
+  estudiantes = [],
+  value = '',
+  onChange,
+  placeholder = 'Buscar estudiante...',
+  minChars = 1
 }) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
-  const containerRef = useRef(null)
+  const wrapRef = useRef(null)
   const inputRef = useRef(null)
 
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+
+  const selected = useMemo(() => {
+    if (!value) return null
+    return estudiantes.find(e => String(e.id) === String(value)) || null
+  }, [value, estudiantes])
+
+  const filtered = useMemo(() => {
+    const q = normalize(query)
+    if (!open) return []
+    if (q.length < minChars) return []
+
+    return estudiantes
+      .map(e => {
+        const nombre = normalize(e.nombre)
+        const apellido = normalize(e.apellido)
+        const full = normalize(`${e.nombre} ${e.apellido}`)
+        return { e, nombre, apellido, full }
+      })
+      .filter(x => startsWithAny(x.full, x.nombre, x.apellido, q))
+      .map(x => x.e)
+      .slice(0, 30)
+  }, [estudiantes, query, open, minChars])
+
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
-        setIsOpen(false)
-        setSearchTerm('')
+    const onDocMouseDown = (ev) => {
+      if (!wrapRef.current) return
+      if (!wrapRef.current.contains(ev.target)) {
+        setOpen(false)
       }
     }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    document.addEventListener('mousedown', onDocMouseDown)
+    return () => document.removeEventListener('mousedown', onDocMouseDown)
   }, [])
 
-  const handleOpen = () => {
-    if (disabled) return
-    setIsOpen(true)
-    setTimeout(() => inputRef.current?.focus(), 100)
+  useEffect(() => {
+    if (open) {
+      setQuery('')
+      setTimeout(() => inputRef.current?.focus(), 0)
+    }
+  }, [open])
+
+  const handlePick = (id) => {
+    onChange?.(String(id))
+    setOpen(false)
   }
 
-  const handleSelect = (estudianteId) => {
-    onChange(estudianteId)
-    setIsOpen(false)
-    setSearchTerm('')
+  const clearSelection = () => {
+    onChange?.('')
+    setOpen(false)
+    setQuery('')
   }
 
-  const filteredEstudiantes = estudiantes.filter(e => {
-    const fullName = `${e.nombre} ${e.apellido}`.toLowerCase()
-    const search = searchTerm.toLowerCase()
-    return fullName.includes(search)
-  })
-
-  const selectedEstudiante = estudiantes.find(e => e.id === value)
+  const showEmpty = open && normalize(query).length >= minChars && filtered.length === 0
 
   return (
-    <div 
-      ref={containerRef} 
-      className={`searchable-student-select ${isOpen ? 'open' : ''} ${disabled ? 'disabled' : ''}`}
-    >
+    <div className="ss-select" ref={wrapRef}>
+      {/* Trigger (NO ES INPUT) */}
       <button
         type="button"
-        className="student-select-trigger"
-        onClick={handleOpen}
-        disabled={disabled}
+        className={`ss-trigger ${open ? 'open' : ''}`}
+        onClick={() => setOpen(v => !v)}
       >
-        <div className="trigger-content">
-          <User size={18} className="trigger-icon" />
-          <span className={selectedEstudiante ? 'selected' : 'placeholder'}>
-            {selectedEstudiante 
-              ? `${selectedEstudiante.nombre} ${selectedEstudiante.apellido}${selectedEstudiante.grupos ? ` - ${selectedEstudiante.grupos.nombre}` : ''}`
-              : placeholder
-            }
+        <div className="ss-trigger-left">
+          <User size={18} />
+          <span className={`ss-trigger-text ${selected ? '' : 'muted'}`}>
+            {selected ? `${selected.nombre} ${selected.apellido}` : placeholder}
           </span>
         </div>
-        <ChevronDown size={18} className={`chevron ${isOpen ? 'rotate' : ''}`} />
+
+        <div className="ss-trigger-right">
+          {selected && (
+            <button
+              type="button"
+              className="ss-clear"
+              onClick={(e) => {
+                e.stopPropagation()
+                clearSelection()
+              }}
+              aria-label="Limpiar"
+              title="Limpiar"
+            >
+              ×
+            </button>
+          )}
+          <ChevronDown size={18} />
+        </div>
       </button>
 
-      {isOpen && (
-        <div className="student-select-dropdown">
-          <div className="search-input-wrapper">
-            <Search size={18} className="search-icon" />
+      {open && (
+        <div className="ss-popover">
+          <div className="ss-search">
+            <Search size={16} />
             <input
               ref={inputRef}
-              type="text"
-              className="search-input"
-              placeholder="Escribí el nombre del estudiante..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Escribí para buscar…"
+              autoComplete="off"
             />
           </div>
 
-          <div className="student-options">
-            {filteredEstudiantes.length === 0 ? (
-              <div className="no-results">
-                <UsersIcon size={32} />
-                <p>No se encontraron estudiantes</p>
-              </div>
-            ) : (
-              filteredEstudiantes.map((estudiante) => (
+          {/* NO mostrar lista si no hay búsqueda */}
+          {normalize(query).length < minChars ? (
+            <div className="ss-hint">
+              Empezá a escribir para ver resultados.
+            </div>
+          ) : (
+            <div className="ss-list">
+              {filtered.map((e) => (
                 <button
-                  key={estudiante.id}
                   type="button"
-                  className={`student-option ${estudiante.id === value ? 'selected' : ''}`}
-                  onClick={() => handleSelect(estudiante.id)}
+                  key={e.id}
+                  className="ss-item"
+                  onClick={() => handlePick(e.id)}
                 >
-                  <div className="student-info">
-                    <div className="student-avatar">
-                      {estudiante.nombre.charAt(0)}{estudiante.apellido.charAt(0)}
-                    </div>
-                    <div className="student-details">
-                      <span className="student-name">
-                        {estudiante.nombre} {estudiante.apellido}
-                      </span>
-                      {estudiante.grupos && (
-                        <span 
-                          className="student-group"
-                          style={{
-                            backgroundColor: estudiante.grupos.color + '20',
-                            color: estudiante.grupos.color
-                          }}
-                        >
-                          {estudiante.grupos.nombre}
-                        </span>
-                      )}
-                    </div>
+                  <div className="ss-item-name">
+                    {e.nombre} {e.apellido}
                   </div>
-                  {estudiante.id === value && (
-                    <span className="check-mark">✓</span>
+
+                  {e.grupos?.nombre && (
+                    <div
+                      className="ss-item-group"
+                      style={{
+                        backgroundColor: (e.grupos.color || '#7c3aed') + '20',
+                        color: e.grupos.color || '#7c3aed'
+                      }}
+                    >
+                      {e.grupos.nombre}
+                    </div>
                   )}
                 </button>
-              ))
-            )}
-          </div>
+              ))}
+
+              {showEmpty && (
+                <div className="ss-empty">
+                  No se encontraron estudiantes
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
   )
 }
-
-export default SearchableStudentSelect

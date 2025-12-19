@@ -17,7 +17,7 @@ import Estudiantes from '../Estudiantes/Estudiantes'
 import Grupos from '../Grupos/Grupos'
 import Pagos from '../Pagos/Pagos'
 import Gastos from '../Gastos/Gastos'
-import Progreso from '../Progreso/Progreso' // ✅ NUEVO
+import Progreso from '../Progreso/Progreso'
 
 import './Dashboard.css'
 
@@ -30,8 +30,9 @@ function Dashboard({ session }) {
     estudiantesMesActual: 0,
     totalGrupos: 0,
     ingresoMensual: 0,
-    pagosPendientes: [],
-    progresoPromedio: 0 // ✅ NUEVO
+    pagosPendientesPreview: [],   // ✅
+    pagosPendientesTotal: 0,      // ✅
+    progresoPromedio: 0
   })
 
   useEffect(() => {
@@ -40,9 +41,7 @@ function Dashboard({ session }) {
   }, [])
 
   useEffect(() => {
-    if (profesor) {
-      loadStats()
-    }
+    if (profesor) loadStats()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profesor])
 
@@ -65,72 +64,87 @@ function Dashboard({ session }) {
 
   const loadStats = async () => {
     try {
-      const { data: estudiantes } = await supabase
+      const { data: estudiantes, error: eEst } = await supabase
         .from('estudiantes')
         .select('*')
         .eq('profesor_id', profesor.id)
+
+      if (eEst) throw eEst
 
       const ahora = new Date()
       const mesActualDate = new Date(ahora.getFullYear(), ahora.getMonth(), 1)
       const estudiantesMes =
         estudiantes?.filter(e => new Date(e.created_at) >= mesActualDate).length || 0
 
-      const { data: grupos } = await supabase
+      const { data: grupos, error: eGrp } = await supabase
         .from('grupos')
         .select('*')
         .eq('profesor_id', profesor.id)
 
+      if (eGrp) throw eGrp
+
       const mes = ahora.getMonth() + 1
       const anio = ahora.getFullYear()
 
-      const { data: pagos } = await supabase
+      const { data: pagos, error: ePag } = await supabase
         .from('pagos')
         .select('monto')
         .eq('profesor_id', profesor.id)
         .eq('mes', mes)
         .eq('anio', anio)
 
+      if (ePag) throw ePag
+
       const totalIngresos =
         pagos?.reduce((sum, p) => sum + (Number(p.monto) || 0), 0) || 0
 
-      const { data: pagosRealizados } = await supabase
+      const { data: pagosRealizados, error: ePagR } = await supabase
         .from('pagos')
         .select('estudiante_id')
         .eq('profesor_id', profesor.id)
         .eq('mes', mes)
         .eq('anio', anio)
 
+      if (ePagR) throw ePagR
+
       const idsConPago = new Set(pagosRealizados?.map(p => p.estudiante_id) || [])
-      const pendientes = estudiantes?.filter(e => !idsConPago.has(e.id)).slice(0, 3) || []
+      const pendientesAll = estudiantes?.filter(e => !idsConPago.has(e.id)) || []
+      const pendientesPreview = pendientesAll.slice(0, 3)
 
-      // ✅ Progreso promedio (basado en tabla 'clases' con asistio boolean)
-      // Si todavía no tenés 'clases', queda en 0 sin romper nada.
+      // ✅ Progreso promedio: NO rompe si no existe 'clases'
       let progresoPromedio = 0
+
       if (estudiantes?.length) {
-        const { data: clases } = await supabase
-          .from('clases')
-          .select('estudiante_id, asistio')
-          .in('estudiante_id', estudiantes.map(e => e.id))
+        try {
+          const { data: clases, error: eCla } = await supabase
+            .from('clases')
+            .select('estudiante_id, asistio')
+            .in('estudiante_id', estudiantes.map(e => e.id))
 
-        if (clases?.length) {
-          const porEstudiante = new Map()
+          // Si la tabla no existe o falla, no tiramos todo abajo:
+          if (!eCla && clases?.length) {
+            const porEstudiante = new Map()
 
-          for (const c of clases) {
-            if (!porEstudiante.has(c.estudiante_id)) {
-              porEstudiante.set(c.estudiante_id, { total: 0, asistidas: 0 })
+            for (const c of clases) {
+              if (!porEstudiante.has(c.estudiante_id)) {
+                porEstudiante.set(c.estudiante_id, { total: 0, asistidas: 0 })
+              }
+              const obj = porEstudiante.get(c.estudiante_id)
+              obj.total += 1
+              if (c.asistio) obj.asistidas += 1
             }
-            const obj = porEstudiante.get(c.estudiante_id)
-            obj.total += 1
-            if (c.asistio) obj.asistidas += 1
+
+            const porcentajes = [...porEstudiante.values()].map(v =>
+              v.total > 0 ? (v.asistidas / v.total) * 100 : 0
+            )
+
+            progresoPromedio = porcentajes.length
+              ? Math.round(porcentajes.reduce((a, b) => a + b, 0) / porcentajes.length)
+              : 0
           }
-
-          const porcentajes = [...porEstudiante.values()].map(v =>
-            v.total > 0 ? (v.asistidas / v.total) * 100 : 0
-          )
-
-          progresoPromedio = porcentajes.length
-            ? Math.round(porcentajes.reduce((a, b) => a + b, 0) / porcentajes.length)
-            : 0
+        } catch (errClases) {
+          // Silencioso: si no existe la tabla, listo. Progreso = 0.
+          // console.warn('Tabla clases no disponible:', errClases)
         }
       }
 
@@ -139,7 +153,8 @@ function Dashboard({ session }) {
         estudiantesMesActual: estudiantesMes,
         totalGrupos: grupos?.length || 0,
         ingresoMensual: totalIngresos,
-        pagosPendientes: pendientes,
+        pagosPendientesPreview: pendientesPreview,
+        pagosPendientesTotal: pendientesAll.length,
         progresoPromedio
       })
     } catch (error) {
@@ -192,7 +207,6 @@ function Dashboard({ session }) {
 
   return (
     <div className="dashboard">
-      {/* Header */}
       <header className="dashboard-header">
         <div className="header-content">
           <div className="header-left">
@@ -217,7 +231,6 @@ function Dashboard({ session }) {
         </div>
       </header>
 
-      {/* Navigation */}
       <nav className="dashboard-nav">
         <div className="nav-content">
           {tabs.map((tab) => {
@@ -236,19 +249,16 @@ function Dashboard({ session }) {
         </div>
       </nav>
 
-      {/* Content */}
       <main className="dashboard-main">
         {activeTab === 'dashboard' && (
           <div className="dashboard-home">
-            {/* Banner */}
             <div className="welcome-banner">
               <h2>¡Bienvenido, {profesor.nombre}!</h2>
               <p>
-                Tienes {stats.totalEstudiantes} estudiantes y {stats.pagosPendientes.length} pagos pendientes
+                Tienes {stats.totalEstudiantes} estudiantes y {stats.pagosPendientesTotal} pagos pendientes
               </p>
             </div>
 
-            {/* Stats */}
             <div className="stats-grid">
               <div className="stat-card">
                 <div className="stat-content">
@@ -304,8 +314,7 @@ function Dashboard({ session }) {
               </div>
             </div>
 
-            {/* Pagos Pendientes */}
-            {stats.pagosPendientes.length > 0 && (
+            {stats.pagosPendientesPreview.length > 0 && (
               <div className="pending-payments">
                 <div className="section-header">
                   <div className="section-icon">
@@ -313,8 +322,9 @@ function Dashboard({ session }) {
                   </div>
                   <h2>Pagos Pendientes</h2>
                 </div>
+
                 <div className="payments-list">
-                  {stats.pagosPendientes.map((estudiante) => (
+                  {stats.pagosPendientesPreview.map((estudiante) => (
                     <div key={estudiante.id} className="payment-item">
                       <span className="payment-name">
                         {estudiante.nombre} {estudiante.apellido}
@@ -323,6 +333,12 @@ function Dashboard({ session }) {
                     </div>
                   ))}
                 </div>
+
+                {stats.pagosPendientesTotal > stats.pagosPendientesPreview.length && (
+                  <div style={{ marginTop: 10, color: '#6b7280', fontWeight: 700 }}>
+                    Mostrando {stats.pagosPendientesPreview.length} de {stats.pagosPendientesTotal}.
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -332,8 +348,6 @@ function Dashboard({ session }) {
         {activeTab === 'grupos' && <Grupos profesorId={session.user.id} />}
         {activeTab === 'pagos' && <Pagos profesorId={session.user.id} />}
         {activeTab === 'gastos' && <Gastos profesorId={session.user.id} />}
-
-        {/* ✅ Progreso real */}
         {activeTab === 'progreso' && <Progreso profesorId={session.user.id} />}
       </main>
     </div>

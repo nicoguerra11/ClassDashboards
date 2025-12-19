@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../supabaseClient'
-import { TrendingUp, DollarSign, Receipt, Users, Search, Calendar } from 'lucide-react'
+import { TrendingUp, DollarSign, Receipt, Users, Search, Calendar, History } from 'lucide-react'
 import './Progreso.css'
+
+import CustomSelect from '../Common/CustomSelect'
 
 function Progreso({ profesorId }) {
   const now = new Date()
-
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [mes, setMes] = useState(now.getMonth() + 1)
@@ -16,17 +17,33 @@ function Progreso({ profesorId }) {
   const [pagosMes, setPagosMes] = useState([])
   const [gastosMes, setGastosMes] = useState([])
 
+  // para historial + gráfica (últimos 12 meses)
+  const [series, setSeries] = useState([]) // [{key:'2025-07', mes, anio, ingresos, egresos, balance}]
+
   useEffect(() => {
     loadData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profesorId, mes, anio])
+
+  useEffect(() => {
+    loadSeries12()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profesorId])
+
+  const monthName = (m) => {
+    const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+    return meses[m - 1] || String(m)
+  }
+
+  const monthOptions = [...Array(12)].map((_, i) => ({ value: i + 1, label: monthName(i + 1) }))
+  const yearOptions = [2023, 2024, 2025, 2026, 2027].map(y => ({ value: y, label: y.toString() }))
 
   const loadData = async () => {
     try {
       setLoading(true)
       setError('')
 
-      const [{ data: est, error: e1 }, { data: pagos, error: e2 }, { data: gastos, error: e3 }] =
+      const [{ data: est, error: e1 }, { data: pagos, error: e2 }, { data: gastosAll, error: e3 }] =
         await Promise.all([
           supabase
             .from('estudiantes')
@@ -53,9 +70,8 @@ function Progreso({ profesorId }) {
 
       setEstudiantes(est || [])
       setPagosMes(pagos || [])
-      
-      // Filtrar gastos por mes/año manualmente ya que la fecha es tipo date
-      const gastosDelMes = (gastos || []).filter(g => {
+
+      const gastosDelMes = (gastosAll || []).filter(g => {
         const fechaGasto = new Date(g.fecha)
         return fechaGasto.getMonth() + 1 === mes && fechaGasto.getFullYear() === anio
       })
@@ -68,27 +84,77 @@ function Progreso({ profesorId }) {
     }
   }
 
-  const idsConPago = useMemo(() => {
-    return new Set((pagosMes || []).map(p => p.estudiante_id))
-  }, [pagosMes])
+  const loadSeries12 = async () => {
+    try {
+      // últimos 12 meses desde hoy
+      const end = new Date()
+      const start = new Date(end.getFullYear(), end.getMonth() - 11, 1)
 
-  const totalCobrado = useMemo(() => {
-    return (pagosMes || []).reduce((acc, p) => acc + (Number(p.monto) || 0), 0)
-  }, [pagosMes])
+      // pagos: traemos último ~1 año (filtramos local por mes/año)
+      const minYear = start.getFullYear()
 
-  const totalGastado = useMemo(() => {
-    return (gastosMes || []).reduce((acc, g) => acc + (Number(g.monto) || 0), 0)
-  }, [gastosMes])
+      const [{ data: pagosAll, error: pErr }, { data: gastosAll, error: gErr }] = await Promise.all([
+        supabase
+          .from('pagos')
+          .select('monto, mes, anio')
+          .eq('profesor_id', profesorId)
+          .gte('anio', minYear),
 
+        supabase
+          .from('gastos')
+          .select('monto, fecha')
+          .eq('profesor_id', profesorId)
+          .gte('fecha', start.toISOString().slice(0, 10))
+      ])
+
+      if (pErr) throw pErr
+      if (gErr) throw gErr
+
+      const map = new Map()
+
+      // init 12 months buckets
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(end.getFullYear(), end.getMonth() - i, 1)
+        const y = d.getFullYear()
+        const m = d.getMonth() + 1
+        const key = `${y}-${String(m).padStart(2, '0')}`
+        map.set(key, { key, anio: y, mes: m, ingresos: 0, egresos: 0, balance: 0 })
+      }
+
+      // ingresos
+      for (const p of (pagosAll || [])) {
+        const key = `${p.anio}-${String(p.mes).padStart(2, '0')}`
+        if (!map.has(key)) continue
+        map.get(key).ingresos += Number(p.monto) || 0
+      }
+
+      // egresos
+      for (const g of (gastosAll || [])) {
+        const d = new Date(g.fecha)
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+        if (!map.has(key)) continue
+        map.get(key).egresos += Number(g.monto) || 0
+      }
+
+      const arr = Array.from(map.values())
+        .map(x => ({ ...x, balance: x.ingresos - x.egresos }))
+        .sort((a, b) => (a.key > b.key ? 1 : -1)) // asc
+
+      setSeries(arr)
+    } catch (err) {
+      console.error(err)
+      // no rompo la pantalla por el historial
+    }
+  }
+
+  const idsConPago = useMemo(() => new Set((pagosMes || []).map(p => p.estudiante_id)), [pagosMes])
+
+  const totalCobrado = useMemo(() => (pagosMes || []).reduce((acc, p) => acc + (Number(p.monto) || 0), 0), [pagosMes])
+  const totalGastado = useMemo(() => (gastosMes || []).reduce((acc, g) => acc + (Number(g.monto) || 0), 0), [gastosMes])
   const balance = totalCobrado - totalGastado
 
-  const estudiantesPagaron = useMemo(() => {
-    return (estudiantes || []).filter(e => idsConPago.has(e.id))
-  }, [estudiantes, idsConPago])
-
-  const estudiantesPendientes = useMemo(() => {
-    return (estudiantes || []).filter(e => !idsConPago.has(e.id))
-  }, [estudiantes, idsConPago])
+  const estudiantesPagaron = useMemo(() => (estudiantes || []).filter(e => idsConPago.has(e.id)), [estudiantes, idsConPago])
+  const estudiantesPendientes = useMemo(() => (estudiantes || []).filter(e => !idsConPago.has(e.id)), [estudiantes, idsConPago])
 
   const pctPagaron = useMemo(() => {
     const total = estudiantes?.length || 0
@@ -106,6 +172,11 @@ function Progreso({ profesorId }) {
   const pendientesFiltrado = useMemo(() => filterByQuery(estudiantesPendientes), [estudiantesPendientes, q])
 
   const formatMoney = (n) => `$${Number(n || 0).toLocaleString('es-UY')}`
+
+  const maxIngresos = useMemo(() => {
+    const m = Math.max(...(series.map(s => s.ingresos)), 1)
+    return m
+  }, [series])
 
   if (loading) {
     return (
@@ -131,29 +202,8 @@ function Progreso({ profesorId }) {
         <div className="progreso-filters">
           <div className="filter">
             <Calendar size={18} />
-            <select value={mes} onChange={(e) => setMes(Number(e.target.value))}>
-              <option value={1}>Enero</option>
-              <option value={2}>Febrero</option>
-              <option value={3}>Marzo</option>
-              <option value={4}>Abril</option>
-              <option value={5}>Mayo</option>
-              <option value={6}>Junio</option>
-              <option value={7}>Julio</option>
-              <option value={8}>Agosto</option>
-              <option value={9}>Septiembre</option>
-              <option value={10}>Octubre</option>
-              <option value={11}>Noviembre</option>
-              <option value={12}>Diciembre</option>
-            </select>
-
-            <input
-              className="year-input"
-              type="number"
-              value={anio}
-              onChange={(e) => setAnio(Number(e.target.value))}
-              min={2000}
-              max={2100}
-            />
+            <CustomSelect value={mes} onChange={setMes} options={monthOptions} />
+            <CustomSelect value={anio} onChange={setAnio} options={yearOptions} />
           </div>
 
           <div className="search">
@@ -225,6 +275,41 @@ function Progreso({ profesorId }) {
           <div className="progressbar">
             <div className="progressbar-fill" style={{ width: `${pctPagaron}%` }} />
           </div>
+        </div>
+      </div>
+
+      {/* Historial + Gráfica */}
+      <div className="progreso-history">
+        <div className="ph-history-header">
+          <h3><History size={18} /> Historial (últimos 12 meses)</h3>
+          <p>Comparativa de ingresos y balance mensual.</p>
+        </div>
+
+        <div className="ph-chart">
+          {series.map((s) => {
+            const h = Math.round((s.ingresos / maxIngresos) * 100)
+            return (
+              <div key={s.key} className="ph-bar">
+                <div className="ph-bar-fill" style={{ height: `${h}%` }} />
+                <div className="ph-bar-label">{String(s.mes).padStart(2, '0')}/{String(s.anio).slice(-2)}</div>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="ph-table">
+          {series.slice().reverse().map((s) => (
+            <div key={s.key} className="ph-row">
+              <div className="ph-row-left">
+                <span className="ph-month">{monthName(s.mes)} {s.anio}</span>
+              </div>
+              <div className="ph-row-right">
+                <span className="ph-pill ok">+ {formatMoney(s.ingresos)}</span>
+                <span className="ph-pill warn">- {formatMoney(s.egresos)}</span>
+                <span className={`ph-pill ${s.balance >= 0 ? 'pos' : 'neg'}`}>{formatMoney(s.balance)}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

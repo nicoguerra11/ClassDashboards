@@ -486,3 +486,17 @@ input[type="number"]:focus {
     justify-content: space-between;
   }
 }
+
+.form-error{
+  background:#fee2e2;
+  color:#b91c1c;
+  border:2px solid #fecaca;
+  padding:.75rem 1rem;
+  border-radius:14px;
+  font-weight:800;
+}
+.pagos-btn-primary:disabled{
+  opacity:.65;
+  cursor:not-allowed;
+  transform:none;
+}

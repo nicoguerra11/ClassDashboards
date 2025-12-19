@@ -3,12 +3,18 @@ import { supabase } from '../../supabaseClient'
 import { Plus, Trash2, X, Search, Receipt, Calendar } from 'lucide-react'
 import './Gastos.css'
 
+import ConfirmDialog from '../Common/ConfirmDialog'
+import { useConfirm } from '../Common/useConfirm'
+import CustomSelect from '../Common/CustomSelect'
+
 function Gastos({ profesorId }) {
+  const { confirm, dialogProps } = useConfirm()
+
   const [gastos, setGastos] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-
   const [showModal, setShowModal] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
 
   const today = new Date().toISOString().slice(0, 10)
 
@@ -19,15 +25,8 @@ function Gastos({ profesorId }) {
     fecha: today
   })
 
-  // Categorías predefinidas
-  const categorias = [
-    'Material',
-    'Alquiler',
-    'Servicios',
-    'Transporte',
-    'Equipamiento',
-    'Otro'
-  ]
+  const categorias = ['Material', 'Alquiler', 'Servicios', 'Transporte', 'Equipamiento', 'Otro']
+  const categoriaOptions = categorias.map(c => ({ value: c, label: c }))
 
   useEffect(() => {
     load()
@@ -36,17 +35,20 @@ function Gastos({ profesorId }) {
 
   const load = async () => {
     setLoading(true)
+    setErrorMsg('')
     const { data, error } = await supabase
       .from('gastos')
       .select('*')
       .eq('profesor_id', profesorId)
       .order('fecha', { ascending: false })
 
-    if (!error) setGastos(data || [])
+    if (error) setErrorMsg('No pude cargar los gastos.')
+    else setGastos(data || [])
     setLoading(false)
   }
 
   const openModal = () => {
+    setErrorMsg('')
     setFormData({ descripcion: '', monto: '', categoria: 'Material', fecha: today })
     setShowModal(true)
   }
@@ -58,19 +60,26 @@ function Gastos({ profesorId }) {
 
   const addGasto = async (e) => {
     e.preventDefault()
+    setErrorMsg('')
+
+    const montoNum = Number(formData.monto)
+    if (!Number.isFinite(montoNum) || montoNum <= 0) {
+      setErrorMsg('El monto debe ser mayor a 0.')
+      return
+    }
 
     const { error } = await supabase
       .from('gastos')
       .insert([{
         profesor_id: profesorId,
         descripcion: formData.descripcion,
-        monto: Number(formData.monto),
+        monto: montoNum,
         categoria: formData.categoria,
         fecha: formData.fecha
       }])
 
     if (error) {
-      alert('Error al crear gasto: ' + error.message)
+      setErrorMsg('Error al crear gasto: ' + error.message)
       return
     }
 
@@ -79,7 +88,15 @@ function Gastos({ profesorId }) {
   }
 
   const deleteGasto = async (id) => {
-    if (!confirm('¿Eliminar gasto?')) return
+    const ok = await confirm({
+      title: 'Eliminar gasto',
+      message: '¿Seguro? Esta acción no se puede deshacer.',
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
+      variant: 'danger'
+    })
+    if (!ok) return
+
     const { error } = await supabase.from('gastos').delete().eq('id', id)
     if (!error) await load()
   }
@@ -108,6 +125,8 @@ function Gastos({ profesorId }) {
 
   return (
     <div className="expenses-page">
+      <ConfirmDialog {...dialogProps} />
+
       <div className="expenses-header">
         <div>
           <h1>Gastos</h1>
@@ -118,6 +137,8 @@ function Gastos({ profesorId }) {
           <Plus size={18} /> Nuevo gasto
         </button>
       </div>
+
+      {errorMsg && <div className="ph-alert">{errorMsg}</div>}
 
       <div className="expenses-top">
         <div className="ph-card ph-search">
@@ -152,7 +173,13 @@ function Gastos({ profesorId }) {
 
             <div className="expense-right">
               <div className="expense-amount">${Number(g.monto).toLocaleString('es-UY')}</div>
-              <button className="expense-delete" onClick={() => deleteGasto(g.id)} title="Eliminar">
+              <button
+                type="button"
+                className="expense-delete"
+                onClick={() => deleteGasto(g.id)}
+                title="Eliminar"
+                aria-label="Eliminar gasto"
+              >
                 <Trash2 size={16} />
               </button>
             </div>
@@ -169,11 +196,11 @@ function Gastos({ profesorId }) {
       )}
 
       {showModal && (
-        <div className="ph-modal-bg" onClick={closeModal}>
-          <div className="ph-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="ph-modal-bg" onMouseDown={closeModal}>
+          <div className="ph-modal" onMouseDown={(e) => e.stopPropagation()}>
             <div className="ph-modal-header">
               <h2>Nuevo gasto</h2>
-              <button className="ph-icon-btn" onClick={closeModal}>
+              <button className="ph-icon-btn" onClick={closeModal} type="button" aria-label="Cerrar">
                 <X size={20} />
               </button>
             </div>
@@ -191,15 +218,11 @@ function Gastos({ profesorId }) {
 
               <div className="ph-form-group">
                 <label>Categoría *</label>
-                <select
+                <CustomSelect
                   value={formData.categoria}
-                  onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
-                  required
-                >
-                  {categorias.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormData({ ...formData, categoria: value })}
+                  options={categoriaOptions}
+                />
               </div>
 
               <div className="expenses-row">

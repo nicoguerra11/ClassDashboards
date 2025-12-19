@@ -1,0 +1,122 @@
+.ph-confirm-bg{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  z-index: 2000;
+  backdrop-filter: blur(4px);
+}
+
+.ph-confirm{
+  width: 100%;
+  max-width: 520px;
+  background: white;
+  border-radius: 22px;
+  box-shadow: 0 24px 70px rgba(0,0,0,.35);
+  border: 2px solid #f3f4f6;
+}
+
+.ph-confirm-header{
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  padding: 1.25rem 1.25rem 1rem;
+  align-items: start;
+}
+
+.ph-confirm-icon{
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+}
+
+.ph-confirm-icon.danger{
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.ph-confirm-icon.warning{
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.ph-confirm-icon.info{
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.ph-confirm-title h3{
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #111827;
+}
+
+.ph-confirm-title p{
+  margin: .25rem 0 0;
+  color: #6b7280;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.ph-confirm-close{
+  border: none;
+  cursor: pointer;
+  background: #f3f4f6;
+  color: #6b7280;
+  padding: .5rem;
+  border-radius: 10px;
+  transition: all .2s;
+  display: grid;
+  place-items: center;
+}
+
+.ph-confirm-close:hover{
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.ph-confirm-actions{
+  display: flex;
+  gap: .75rem;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.ph-btn-secondary{
+  flex: 1;
+  background: white;
+  border: 2px solid #e5e7eb;
+  color: #374151;
+  font-weight: 900;
+  padding: .9rem 1rem;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all .2s;
+}
+
+.ph-btn-secondary:hover{
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.ph-btn-danger{
+  flex: 1;
+  border: none;
+  cursor: pointer;
+  color: white;
+  font-weight: 900;
+  padding: .9rem 1rem;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  box-shadow: 0 10px 22px rgba(220,38,38,.22);
+  transition: transform .15s, box-shadow .15s;
+}
+
+.ph-btn-danger:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 16px 30px rgba(220,38,38,.28);
+}

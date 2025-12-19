@@ -3,7 +3,12 @@ import { supabase } from '../../supabaseClient'
 import { Plus, Trash2, Edit2, Users, X, Search, Palette } from 'lucide-react'
 import './Grupos.css'
 
+import ConfirmDialog from '../Common/ConfirmDialog'
+import { useConfirm } from '../Common/useConfirm'
+
 function Grupos({ profesorId }) {
+  const { confirm, dialogProps } = useConfirm()
+
   const [grupos, setGrupos] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -87,7 +92,14 @@ function Grupos({ profesorId }) {
   }
 
   const handleDelete = async (grupoId) => {
-    if (!confirm('¿Seguro que querés eliminar este grupo?')) return
+    const ok = await confirm({
+      title: 'Eliminar grupo',
+      message: '¿Seguro? El grupo se eliminará. Los estudiantes quedarán “sin grupo”.',
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
+      variant: 'danger'
+    })
+    if (!ok) return
 
     const { error } = await supabase
       .from('grupos')
@@ -114,6 +126,8 @@ function Grupos({ profesorId }) {
 
   return (
     <div className="ph-page">
+      <ConfirmDialog {...dialogProps} />
+
       <div className="ph-page-header">
         <div>
           <h1>Grupos</h1>
@@ -148,12 +162,12 @@ function Grupos({ profesorId }) {
             </div>
 
             <div className="group-actions">
-              <button className="ph-btn-soft" onClick={() => openModal(g)}>
+              <button className="ph-btn-soft" onClick={() => openModal(g)} type="button">
                 <Edit2 size={16} />
                 Editar
               </button>
 
-              <button className="ph-btn-danger" onClick={() => handleDelete(g.id)}>
+              <button className="ph-btn-danger" onClick={() => handleDelete(g.id)} type="button">
                 <Trash2 size={16} />
                 Eliminar
               </button>
@@ -171,11 +185,11 @@ function Grupos({ profesorId }) {
       )}
 
       {showModal && (
-        <div className="ph-modal-bg" onClick={closeModal}>
-          <div className="ph-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="ph-modal-bg" onMouseDown={closeModal}>
+          <div className="ph-modal" onMouseDown={(e) => e.stopPropagation()}>
             <div className="ph-modal-header">
               <h2>{editing ? 'Editar Grupo' : 'Nuevo Grupo'}</h2>
-              <button className="ph-icon-btn" onClick={closeModal}>
+              <button className="ph-icon-btn" onClick={closeModal} type="button" aria-label="Cerrar">
                 <X size={20} />
               </button>
             </div>

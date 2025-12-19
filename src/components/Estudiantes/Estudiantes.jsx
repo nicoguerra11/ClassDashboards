@@ -8,7 +8,6 @@ import {
   X,
   CheckCircle,
   XCircle,
-  Mail,
   Phone,
   Users,
   History,
@@ -17,7 +16,13 @@ import {
 } from 'lucide-react'
 import './Estudiantes.css'
 
+import ConfirmDialog from '../Common/ConfirmDialog'
+import { useConfirm } from '../Common/useConfirm'
+import CustomSelect from '../Common/CustomSelect'
+
 function Estudiantes({ profesorId }) {
+  const { confirm, dialogProps } = useConfirm()
+
   const [estudiantes, setEstudiantes] = useState([])
   const [grupos, setGrupos] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -28,16 +33,17 @@ function Estudiantes({ profesorId }) {
   const [editingEstudiante, setEditingEstudiante] = useState(null)
   const [loading, setLoading] = useState(true)
   const [filterTab, setFilterTab] = useState('todos') // 'todos', 'pagaron', 'pendientes'
+
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
-    email: '',
     telefono: '',
     grupo_id: ''
   })
 
   useEffect(() => {
     loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadData = async () => {
@@ -49,7 +55,13 @@ function Estudiantes({ profesorId }) {
     const { data, error } = await supabase
       .from('estudiantes')
       .select(`
-        *,
+        id,
+        profesor_id,
+        nombre,
+        apellido,
+        telefono,
+        grupo_id,
+        created_at,
         grupos (nombre, color),
         pagos (mes, anio)
       `)
@@ -76,9 +88,7 @@ function Estudiantes({ profesorId }) {
       .order('anio', { ascending: false })
       .order('mes', { ascending: false })
 
-    if (!error && data) {
-      setStudentHistory(data)
-    }
+    if (!error && data) setStudentHistory(data)
   }
 
   const hasPagadoEsteMes = (pagos) => {
@@ -95,7 +105,6 @@ function Estudiantes({ profesorId }) {
       return (
         e.nombre.toLowerCase().includes(s) ||
         e.apellido.toLowerCase().includes(s) ||
-        (e.email && e.email.toLowerCase().includes(s)) ||
         (e.grupos && e.grupos.nombre.toLowerCase().includes(s))
       )
     })
@@ -117,7 +126,6 @@ function Estudiantes({ profesorId }) {
       setFormData({
         nombre: estudiante.nombre,
         apellido: estudiante.apellido,
-        email: estudiante.email || '',
         telefono: estudiante.telefono || '',
         grupo_id: estudiante.grupo_id || ''
       })
@@ -126,7 +134,6 @@ function Estudiantes({ profesorId }) {
       setFormData({
         nombre: '',
         apellido: '',
-        email: '',
         telefono: '',
         grupo_id: ''
       })
@@ -140,7 +147,6 @@ function Estudiantes({ profesorId }) {
     setFormData({
       nombre: '',
       apellido: '',
-      email: '',
       telefono: '',
       grupo_id: ''
     })
@@ -167,7 +173,6 @@ function Estudiantes({ profesorId }) {
         .update({
           nombre: formData.nombre,
           apellido: formData.apellido,
-          email: formData.email || null,
           telefono: formData.telefono || null,
           grupo_id: formData.grupo_id || null
         })
@@ -186,7 +191,6 @@ function Estudiantes({ profesorId }) {
         profesor_id: profesorId,
         nombre: formData.nombre,
         apellido: formData.apellido,
-        email: formData.email || null,
         telefono: formData.telefono || null,
         grupo_id: formData.grupo_id || null
       }])
@@ -198,14 +202,21 @@ function Estudiantes({ profesorId }) {
   }
 
   const handleDelete = async (id) => {
-    if (confirm('¿Estás seguro de eliminar este estudiante?')) {
-      const { error } = await supabase
-        .from('estudiantes')
-        .delete()
-        .eq('id', id)
+    const ok = await confirm({
+      title: 'Eliminar estudiante',
+      message: '¿Seguro? Se eliminará el estudiante y puede afectar registros relacionados.',
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
+      variant: 'danger'
+    })
+    if (!ok) return
 
-      if (!error) await loadEstudiantes()
-    }
+    const { error } = await supabase
+      .from('estudiantes')
+      .delete()
+      .eq('id', id)
+
+    if (!error) await loadEstudiantes()
   }
 
   const getMesNombre = (mes) => {
@@ -227,8 +238,15 @@ function Estudiantes({ profesorId }) {
   const pagaron = estudiantes.filter(e => hasPagadoEsteMes(e.pagos)).length
   const pendientes = estudiantes.length - pagaron
 
+  const grupoOptions = [
+    { value: '', label: 'Sin grupo' },
+    ...grupos.map(g => ({ value: g.id, label: g.nombre }))
+  ]
+
   return (
     <div className="students">
+      <ConfirmDialog {...dialogProps} />
+
       {/* Header */}
       <div className="students-header">
         <div>
@@ -278,7 +296,7 @@ function Estudiantes({ profesorId }) {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar por nombre, email o grupo..."
+            placeholder="Buscar por nombre o grupo..."
           />
         </div>
       </div>
@@ -316,12 +334,6 @@ function Estudiantes({ profesorId }) {
               </div>
 
               <div className="student-contact">
-                {estudiante.email && (
-                  <div className="student-contact-item">
-                    <Mail size={16} />
-                    <span title={estudiante.email}>{estudiante.email}</span>
-                  </div>
-                )}
                 {estudiante.telefono && (
                   <div className="student-contact-item">
                     <Phone size={16} />
@@ -402,15 +414,6 @@ function Estudiantes({ profesorId }) {
               </div>
 
               <div className="students-field">
-                <label>Email</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                />
-              </div>
-
-              <div className="students-field">
                 <label>Teléfono</label>
                 <input
                   type="tel"
@@ -421,18 +424,11 @@ function Estudiantes({ profesorId }) {
 
               <div className="students-field">
                 <label>Grupo</label>
-                <div className="custom-select-wrapper">
-                  <select
-                    value={formData.grupo_id}
-                    onChange={(e) => setFormData({ ...formData, grupo_id: e.target.value })}
-                    className="custom-select"
-                  >
-                    <option value="">Sin grupo</option>
-                    {grupos.map((g) => (
-                      <option key={g.id} value={g.id}>{g.nombre}</option>
-                    ))}
-                  </select>
-                </div>
+                <CustomSelect
+                  value={formData.grupo_id}
+                  onChange={(value) => setFormData({ ...formData, grupo_id: value })}
+                  options={grupoOptions}
+                />
               </div>
 
               <div className="students-form-actions">
