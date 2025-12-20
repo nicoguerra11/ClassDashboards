@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../supabaseClient'
-import { Plus, Trash2, Edit2, Users, X, Search, Palette } from 'lucide-react'
+import { Plus, Trash2, Edit2, Users, X, Search, Palette, Eye, UserCheck } from 'lucide-react'
 import './Grupos.css'
 
 import ConfirmDialog from '../Common/ConfirmDialog'
@@ -14,6 +14,9 @@ function Grupos({ profesorId }) {
   const [searchTerm, setSearchTerm] = useState('')
 
   const [showModal, setShowModal] = useState(false)
+  const [showStudentsModal, setShowStudentsModal] = useState(false)
+  const [selectedGroup, setSelectedGroup] = useState(null)
+  const [groupStudents, setGroupStudents] = useState([])
   const [editing, setEditing] = useState(null)
 
   const [formData, setFormData] = useState({
@@ -38,6 +41,16 @@ function Grupos({ profesorId }) {
     setLoading(false)
   }
 
+  const loadGroupStudents = async (grupoId) => {
+    const { data, error } = await supabase
+      .from('estudiantes')
+      .select('id, nombre, apellido, telefono')
+      .eq('grupo_id', grupoId)
+      .order('apellido', { ascending: true })
+
+    if (!error) setGroupStudents(data || [])
+  }
+
   const openModal = (grupo = null) => {
     if (grupo) {
       setEditing(grupo)
@@ -56,6 +69,18 @@ function Grupos({ profesorId }) {
     setShowModal(false)
     setEditing(null)
     setFormData({ nombre: '', color: '#667eea' })
+  }
+
+  const openStudentsModal = async (grupo) => {
+    setSelectedGroup(grupo)
+    await loadGroupStudents(grupo.id)
+    setShowStudentsModal(true)
+  }
+
+  const closeStudentsModal = () => {
+    setShowStudentsModal(false)
+    setSelectedGroup(null)
+    setGroupStudents([])
   }
 
   const handleSubmit = async (e) => {
@@ -94,7 +119,7 @@ function Grupos({ profesorId }) {
   const handleDelete = async (grupoId) => {
     const ok = await confirm({
       title: 'Eliminar grupo',
-      message: '¿Seguro? El grupo se eliminará. Los estudiantes quedarán “sin grupo”.',
+      message: '¿Seguro? El grupo se eliminará. Los estudiantes quedarán "sin grupo".',
       confirmText: 'Eliminar',
       cancelText: 'Cancelar',
       variant: 'danger'
@@ -162,6 +187,11 @@ function Grupos({ profesorId }) {
             </div>
 
             <div className="group-actions">
+              <button className="ph-btn-info" onClick={() => openStudentsModal(g)} type="button">
+                <Eye size={16} />
+                Ver estudiantes
+              </button>
+
               <button className="ph-btn-soft" onClick={() => openModal(g)} type="button">
                 <Edit2 size={16} />
                 Editar
@@ -184,6 +214,7 @@ function Grupos({ profesorId }) {
         </div>
       )}
 
+      {/* Modal Crear/Editar */}
       {showModal && (
         <div className="ph-modal-bg" onMouseDown={closeModal}>
           <div className="ph-modal" onMouseDown={(e) => e.stopPropagation()}>
@@ -221,6 +252,45 @@ function Grupos({ profesorId }) {
                 {editing ? 'Guardar cambios' : 'Crear grupo'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Ver Estudiantes */}
+      {showStudentsModal && selectedGroup && (
+        <div className="ph-modal-bg" onMouseDown={closeStudentsModal}>
+          <div className="ph-modal students-modal" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="ph-modal-header">
+              <h2>
+                <UserCheck size={24} />
+                Estudiantes de {selectedGroup.nombre}
+              </h2>
+              <button className="ph-icon-btn" onClick={closeStudentsModal} type="button" aria-label="Cerrar">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="students-list-container">
+              {groupStudents.length === 0 ? (
+                <div className="ph-empty-students">
+                  <Users size={48} />
+                  <p>Este grupo aún no tiene estudiantes asignados.</p>
+                </div>
+              ) : (
+                <div className="students-list">
+                  {groupStudents.map((student) => (
+                    <div key={student.id} className="student-item">
+                      <div className="student-item-info">
+                        <h4>{student.nombre} {student.apellido}</h4>
+                        {student.telefono && (
+                          <span className="student-phone">{student.telefono}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

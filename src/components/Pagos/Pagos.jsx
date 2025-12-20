@@ -6,6 +6,7 @@ import SearchableStudentSelect from '../Common/SearchableStudentSelect'
 import CustomSelect from '../Common/CustomSelect'
 import ConfirmDialog from '../Common/ConfirmDialog'
 import { useConfirm } from '../Common/useConfirm'
+import PhDatePicker from '../Common/PhDatePicker'
 
 import './Pagos.css'
 
@@ -41,7 +42,6 @@ function Pagos({ profesorId }) {
   }, [])
 
   useEffect(() => {
-    // si cambiás el mes/año del filtro, el modal nuevo arranca con eso
     setFormData((s) => ({ ...s, mes: selectedMonth, anio: selectedYear }))
   }, [selectedMonth, selectedYear])
 
@@ -160,18 +160,14 @@ function Pagos({ profesorId }) {
 
     const tipo = formData.tipo
 
-    // NOT NULL en tu DB, siempre mandamos fecha_pago (aunque la ocultemos en mensual)
     const fechaPago = (formData.fecha_pago || '').trim()
     const fechaFinal = fechaPago || todayISO
 
-    // Regla práctica:
-    // - Si es mensual: usamos el mes/año del form (y ponemos fechaPago = hoy por detrás)
-    // - Si es único: derivamos mes/año desde la fecha (así no es redundante en UI, pero DB queda consistente)
     let mesFinal = Number(formData.mes)
     let anioFinal = Number(formData.anio)
 
     if (tipo === 'unico') {
-      const d = new Date(fechaFinal)
+      const d = new Date(`${fechaFinal}T00:00:00`)
       if (Number.isNaN(d.getTime())) {
         setFormError('La fecha de pago no es válida.')
         return
@@ -179,7 +175,6 @@ function Pagos({ profesorId }) {
       mesFinal = d.getMonth() + 1
       anioFinal = d.getFullYear()
     } else {
-      // mensual
       if (!mesFinal || !anioFinal) {
         setFormError('Elegí mes y año.')
         return
@@ -189,9 +184,6 @@ function Pagos({ profesorId }) {
     setSaving(true)
 
     try {
-      // OJO: tu índice unique es (estudiante_id, mes, anio)
-      // Esto te impide registrar 2 pagos "únicos" en el mismo mes para el mismo estudiante.
-      // Lo mantenemos por ahora; si querés múltiples pagos únicos, hay que cambiar ese unique.
       const { data: existingPago, error: exErr } = await supabase
         .from('pagos')
         .select('id')
@@ -203,8 +195,7 @@ function Pagos({ profesorId }) {
       if (!exErr && existingPago) {
         const ok = await confirm({
           title: 'Pago duplicado',
-          message:
-            'Ya existe un pago para este estudiante en ese mes/año. ¿Querés registrarlo igual?',
+          message: 'Ya existe un pago para este estudiante en ese mes/año. ¿Querés registrarlo igual?',
           confirmText: 'Registrar igual',
           cancelText: 'Cancelar',
           variant: 'warning'
@@ -264,46 +255,47 @@ function Pagos({ profesorId }) {
 
   if (loading) {
     return (
-      <div className="pagos-loading">
-        <div className="pagos-spinner" />
+      <div className="ph-loading">
+        <div className="ph-spinner"></div>
         <p>Cargando pagos...</p>
       </div>
     )
   }
 
   return (
-    <div className="pagos">
+    <div className="ph-page pagos-page">
       <ConfirmDialog {...dialogProps} />
 
-      <div className="pagos-header">
+      <div className="ph-header">
         <div>
           <h1>Pagos</h1>
           <p>Registrá pagos manualmente (mes actual: {selectedMonth}/{selectedYear})</p>
         </div>
 
-        <button className="pagos-btn-primary" onClick={openModal} type="button">
+        <button className="ph-btn-primary" onClick={openModal} type="button">
           <Plus size={18} />
           Registrar Pago
         </button>
       </div>
 
-      <div className="pagos-filters">
-        <div className="pagos-date-picker">
-          <Calendar size={20} />
-          <CustomSelect
-            value={selectedMonth}
-            onChange={(value) => setSelectedMonth(Number(value))}
-            options={monthOptions}
-          />
-
-          <CustomSelect
-            value={selectedYear}
-            onChange={(value) => setSelectedYear(Number(value))}
-            options={yearOptions}
-          />
+      <div className="ph-filters">
+        <div className="ph-filter-left">
+          <div className="ph-pill">
+            <Calendar size={18} />
+            <CustomSelect
+              value={selectedMonth}
+              onChange={(value) => setSelectedMonth(Number(value))}
+              options={monthOptions}
+            />
+            <CustomSelect
+              value={selectedYear}
+              onChange={(value) => setSelectedYear(Number(value))}
+              options={yearOptions}
+            />
+          </div>
         </div>
 
-        <div className="pagos-search">
+        <div className="ph-searchbar">
           <Search size={18} />
           <input
             type="text"
@@ -313,15 +305,16 @@ function Pagos({ profesorId }) {
           />
         </div>
 
-        <div className="pagos-total">
-          <DollarSign size={20} />
-          <span>Total: ${totalMes.toLocaleString('es-UY')}</span>
+        <div className="ph-total">
+          <DollarSign size={18} />
+          <span>Total: </span>
+          <strong>${totalMes.toLocaleString('es-UY')}</strong>
         </div>
       </div>
 
       {filteredPagos.length === 0 ? (
-        <div className="pagos-empty">
-          <DollarSign size={48} />
+        <div className="ph-empty">
+          <DollarSign size={42} />
           <h2>No hay resultados</h2>
           <p>
             {searchTerm
@@ -330,40 +323,45 @@ function Pagos({ profesorId }) {
           </p>
         </div>
       ) : (
-        <div className="pagos-list">
+        <div className="ph-list">
           {filteredPagos.map((pago) => {
             const estudiante = pago.estudiantes
 
             return (
-              <div key={pago.id} className="pago-item">
-                <div className="pago-left">
-                  <div className="pago-icon">
+              <div key={pago.id} className="ph-row">
+                <div className="ph-row-left">
+                  <div className="ph-row-icon ph-row-icon-green">
                     <DollarSign size={20} />
                   </div>
-                  <div className="pago-info">
-                    <h3>{estudiante?.nombre} {estudiante?.apellido}</h3>
-                    {estudiante?.grupos && (
-                      <span
-                        className="pago-group"
-                        style={{
-                          backgroundColor: estudiante.grupos.color + '20',
-                          color: estudiante.grupos.color
-                        }}
-                      >
-                        {estudiante.grupos.nombre}
-                      </span>
-                    )}
+
+                  <div className="ph-row-info">
+                    <div className="ph-row-title">
+                      {estudiante?.nombre} {estudiante?.apellido}
+                      {estudiante?.grupos && (
+                        <span
+                          className="ph-badge"
+                          style={{
+                            backgroundColor: estudiante.grupos.color + '20',
+                            color: estudiante.grupos.color
+                          }}
+                        >
+                          {estudiante.grupos.nombre}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="pago-right">
-                  <span className="pago-amount">
+                <div className="ph-row-right">
+                  <div className="ph-row-amount green">
                     ${Number(pago.monto).toLocaleString('es-UY')}
-                  </span>
+                  </div>
+
                   <button
-                    className="pago-delete"
+                    className="ph-icon-delete"
                     onClick={() => handleDelete(pago.id)}
                     aria-label="Eliminar pago"
+                    title="Eliminar pago"
                     type="button"
                   >
                     <Trash2 size={18} />
@@ -376,24 +374,23 @@ function Pagos({ profesorId }) {
       )}
 
       {showModal && (
-        <div className="pagos-modal-overlay" onMouseDown={closeModal}>
-          <div className="pagos-modal" onMouseDown={(e) => e.stopPropagation()}>
-            <div className="pagos-modal-header">
+        <div className="ph-modal-bg" onMouseDown={closeModal}>
+          <div className="ph-modal" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="ph-modal-header">
               <h2>Registrar Pago</h2>
               <button
-                className="pagos-icon-btn"
+                className="ph-icon-btn"
                 onClick={closeModal}
                 type="button"
                 aria-label="Cerrar"
                 disabled={saving}
               >
-                <X size={22} />
+                <X size={20} />
               </button>
             </div>
 
-            <form className="pagos-form" onSubmit={handleSubmit}>
-              {/* ✅ Tipo de pago */}
-              <div className="pagos-field">
+            <form className="ph-form" onSubmit={handleSubmit}>
+              <div className="ph-form-group">
                 <label>Tipo *</label>
                 <CustomSelect
                   value={formData.tipo}
@@ -402,8 +399,6 @@ function Pagos({ profesorId }) {
                     setFormData((s) => ({
                       ...s,
                       tipo: next,
-                      // si pasa a "único" mantenemos fecha,
-                      // si vuelve a mensual, dejamos mes/año del filtro actual
                       mes: next === 'mensual' ? selectedMonth : s.mes,
                       anio: next === 'mensual' ? selectedYear : s.anio
                     }))
@@ -412,7 +407,7 @@ function Pagos({ profesorId }) {
                 />
               </div>
 
-              <div className="pagos-field">
+              <div className="ph-form-group">
                 <label>Estudiante *</label>
                 <SearchableStudentSelect
                   estudiantes={estudiantes}
@@ -421,9 +416,9 @@ function Pagos({ profesorId }) {
                 />
               </div>
 
-              <div className="pagos-field">
+              <div className="ph-form-group">
                 <label>Monto *</label>
-                <div className="input-with-icon">
+                <div className="ph-input-with-icon green">
                   <DollarSign size={18} />
                   <input
                     type="number"
@@ -438,24 +433,20 @@ function Pagos({ profesorId }) {
                 </div>
               </div>
 
-              {/* ✅ Si es ÚNICO: mostramos fecha */}
               {formData.tipo === 'unico' && (
-                <div className="pagos-field">
+                <div className="ph-form-group">
                   <label>Fecha de pago *</label>
-                  <input
-                    type="date"
+                  <PhDatePicker
                     value={formData.fecha_pago}
-                    onChange={(e) => setFormData((s) => ({ ...s, fecha_pago: e.target.value }))}
-                    required
+                    onChange={(iso) => setFormData((s) => ({ ...s, fecha_pago: iso || todayISO }))}
                     disabled={saving}
                   />
                 </div>
               )}
 
-              {/* ✅ Si es MENSUAL: mostramos mes/año (y NO mostramos fecha porque es redundante) */}
               {formData.tipo === 'mensual' && (
-                <div className="pagos-form-row">
-                  <div className="pagos-field">
+                <div className="ph-grid-2">
+                  <div className="ph-form-group">
                     <label>Mes *</label>
                     <CustomSelect
                       value={formData.mes}
@@ -464,7 +455,7 @@ function Pagos({ profesorId }) {
                     />
                   </div>
 
-                  <div className="pagos-field">
+                  <div className="ph-form-group">
                     <label>Año *</label>
                     <CustomSelect
                       value={formData.anio}
@@ -475,22 +466,13 @@ function Pagos({ profesorId }) {
                 </div>
               )}
 
-              {formError && (
-                <div style={{ color: '#dc2626', fontWeight: 800, marginTop: '-0.25rem' }}>
-                  {formError}
-                </div>
-              )}
+              {formError && <div className="ph-form-error">{formError}</div>}
 
-              <div className="pagos-form-actions">
-                <button
-                  type="button"
-                  className="pagos-btn-secondary"
-                  onClick={closeModal}
-                  disabled={saving}
-                >
+              <div className="ph-actions">
+                <button type="button" className="ph-btn-secondary" onClick={closeModal} disabled={saving}>
                   Cancelar
                 </button>
-                <button type="submit" className="pagos-btn-primary" disabled={saving}>
+                <button type="submit" className="ph-btn-primary" disabled={saving}>
                   {saving ? 'Registrando...' : 'Registrar Pago'}
                 </button>
               </div>

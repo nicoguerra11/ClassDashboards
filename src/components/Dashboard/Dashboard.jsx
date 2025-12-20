@@ -30,8 +30,8 @@ function Dashboard({ session }) {
     estudiantesMesActual: 0,
     totalGrupos: 0,
     ingresoMensual: 0,
-    pagosPendientesPreview: [],   // ✅
-    pagosPendientesTotal: 0,      // ✅
+    pagosPendientesPreview: [],
+    pagosPendientesTotal: 0,
     progresoPromedio: 0
   })
 
@@ -64,9 +64,10 @@ function Dashboard({ session }) {
 
   const loadStats = async () => {
     try {
+      // Obtener todos los estudiantes
       const { data: estudiantes, error: eEst } = await supabase
         .from('estudiantes')
-        .select('*')
+        .select('id, created_at')
         .eq('profesor_id', profesor.id)
 
       if (eEst) throw eEst
@@ -76,6 +77,7 @@ function Dashboard({ session }) {
       const estudiantesMes =
         estudiantes?.filter(e => new Date(e.created_at) >= mesActualDate).length || 0
 
+      // Obtener grupos
       const { data: grupos, error: eGrp } = await supabase
         .from('grupos')
         .select('*')
@@ -86,9 +88,10 @@ function Dashboard({ session }) {
       const mes = ahora.getMonth() + 1
       const anio = ahora.getFullYear()
 
+      // Obtener pagos del mes actual
       const { data: pagos, error: ePag } = await supabase
         .from('pagos')
-        .select('monto')
+        .select('monto, estudiante_id')
         .eq('profesor_id', profesor.id)
         .eq('mes', mes)
         .eq('anio', anio)
@@ -98,20 +101,26 @@ function Dashboard({ session }) {
       const totalIngresos =
         pagos?.reduce((sum, p) => sum + (Number(p.monto) || 0), 0) || 0
 
-      const { data: pagosRealizados, error: ePagR } = await supabase
-        .from('pagos')
-        .select('estudiante_id')
-        .eq('profesor_id', profesor.id)
-        .eq('mes', mes)
-        .eq('anio', anio)
+      // ✅ ARREGLO: Crear Set de IDs que SÍ pagaron este mes
+      const idsConPago = new Set(pagos?.map(p => p.estudiante_id) || [])
 
-      if (ePagR) throw ePagR
-
-      const idsConPago = new Set(pagosRealizados?.map(p => p.estudiante_id) || [])
+      // ✅ Filtrar estudiantes que NO están en el Set
       const pendientesAll = estudiantes?.filter(e => !idsConPago.has(e.id)) || []
-      const pendientesPreview = pendientesAll.slice(0, 3)
 
-      // ✅ Progreso promedio: NO rompe si no existe 'clases'
+      // Obtener datos completos de los 3 primeros pendientes
+      let pendientesPreview = []
+      if (pendientesAll.length > 0) {
+        const { data: estudiantesCompletos, error: eCompletos } = await supabase
+          .from('estudiantes')
+          .select('id, nombre, apellido')
+          .in('id', pendientesAll.slice(0, 3).map(e => e.id))
+
+        if (!eCompletos) {
+          pendientesPreview = estudiantesCompletos || []
+        }
+      }
+
+      // Progreso promedio
       let progresoPromedio = 0
 
       if (estudiantes?.length) {
@@ -121,7 +130,6 @@ function Dashboard({ session }) {
             .select('estudiante_id, asistio')
             .in('estudiante_id', estudiantes.map(e => e.id))
 
-          // Si la tabla no existe o falla, no tiramos todo abajo:
           if (!eCla && clases?.length) {
             const porEstudiante = new Map()
 
@@ -143,8 +151,7 @@ function Dashboard({ session }) {
               : 0
           }
         } catch (errClases) {
-          // Silencioso: si no existe la tabla, listo. Progreso = 0.
-          // console.warn('Tabla clases no disponible:', errClases)
+          // Silencioso: si no existe la tabla, progreso = 0
         }
       }
 

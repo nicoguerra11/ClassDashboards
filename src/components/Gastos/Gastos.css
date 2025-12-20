@@ -1,94 +1,37 @@
-.expenses-page{ 
-  display:flex; 
-  flex-direction:column; 
-  gap: 1.25rem; 
+/* Reusa el mismo layout que Pagos, pero con pequeños detalles propios */
+@import url('../Pagos/Pagos.css');
+
+/* total neutral (gastos) */
+.ledger-total--neutral{
+  background: #ffffff;
+  color:#111827;
+  border: 2px solid #eef2ff;
 }
 
-.expenses-header{
-  display:flex;
-  align-items:flex-end;
-  justify-content:space-between;
-  gap: 1rem;
-}
-.expenses-header h1{ 
-  font-size: 2rem; 
-  font-weight: 800; 
-  color:#1a202c; 
-  margin:0; 
-}
-.expenses-header p{ 
-  margin:.35rem 0 0; 
-  color:#718096; 
+/* icono violeta para gastos */
+.ledger-icon--violet{
+  background: linear-gradient(135deg, rgba(124,58,237,.12), rgba(236,72,153,.08));
+  color:#7c3aed;
 }
 
-.expenses-top{
-  display:flex;
-  gap: 1rem;
-  align-items: stretch;
-}
-.expenses-total{
-  flex: 0 0 auto;
-  background:#fff;
-  border: 1px solid #edf2f7;
-  border-radius: 18px;
-  padding: 1rem 1.1rem;
+/* título + pill en línea */
+.gasto-title{
   display:flex;
   align-items:center;
   gap:.6rem;
-  box-shadow: 0 4px 15px rgba(0,0,0,.08);
-  color:#4a5568;
-  font-weight: 900;
-}
-.expenses-total strong{ 
-  color:#1a202c; 
-}
-
-.expenses-list{
-  display:flex;
-  flex-direction:column;
-  gap: .75rem;
-}
-.expense-row{
-  background:#fff;
-  border-radius: 18px;
-  padding: 1.1rem 1.2rem;
-  border: 1px solid #edf2f7;
-  box-shadow: 0 4px 15px rgba(0,0,0,.08);
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap: 1rem;
-  transition: all .2s;
-}
-.expense-row:hover{
-  transform: translateY(-2px);
-  box-shadow: 0 10px 28px rgba(0,0,0,.10);
-}
-
-.expense-left{
-  display:flex;
-  flex-direction:column;
-  gap:.35rem;
-}
-.expense-concept{
-  font-weight: 950;
-  color:#1a202c;
-  font-size: 1.05rem;
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
   flex-wrap: wrap;
 }
-
-.expense-category {
-  font-size: 0.8rem;
+.gasto-pill{
+  font-size: .8rem;
   font-weight: 800;
-  padding: 0.25rem 0.6rem;
+  padding: .25rem .6rem;
   border-radius: 999px;
   background: #ede9fe;
-  color: #7c3aed;
+  color:#7c3aed;
 }
-.expense-date{
+
+/* fecha */
+.gasto-date{
   display:flex;
   align-items:center;
   gap:.4rem;
@@ -97,114 +40,76 @@
   font-size: .9rem;
 }
 
-.expense-right{
+/* amount dark */
+.ledger-amount--dark{
+  color:#111827;
+}
+
+/* alerta */
+.ledger-alert{
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  font-weight: 800;
+}
+
+/* inputs base para modal de gastos */
+.ledger-input{
+  width:100%;
+  padding: .9rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 14px;
+  background: #f9fafb;
+  color: #111827;
+  font-weight: 600;
+  transition: all .2s;
+}
+.ledger-input:focus{
+  outline:none;
+  border-color:#7c3aed;
+  background:#fff;
+  box-shadow: 0 0 0 3px rgba(124,58,237,.12);
+}
+
+/* Reusa toda la base unificada de Pagos.css:
+   - ph-page, ph-header, ph-filters, ph-pill, ph-searchbar, ph-total,
+   - ph-list, ph-row, ph-row-left/right, ph-icon-delete, ph-empty, modal, etc.
+   Entonces acá dejamos SOLO lo específico de Gastos.
+*/
+
+.gastos-page .gastos-total{
+  background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+  color:#4f46e5;
+  box-shadow: 0 4px 15px rgba(79,70,229,.12);
+}
+.gastos-page .gastos-total strong{
+  color:#111827;
+}
+
+.ph-row-icon-purple{
+  background: linear-gradient(135deg, rgba(124,58,237,.12), rgba(236,72,153,.08));
+  color:#7c3aed;
+}
+
+.ph-badge.purple{
+  background: #ede9fe;
+  color:#7c3aed;
+}
+
+.gasto-date{
+  margin-top: .35rem;
   display:flex;
   align-items:center;
-  gap:.75rem;
-}
-.expense-amount{
-  font-weight: 1000;
-  color:#1a202c;
-  font-size: 1.05rem;
-}
-.expense-delete{
-  border: 1px solid #fed7d7;
-  background:#fff5f5;
-  color:#c53030;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  transition: all 0.2s;
-}
-.expense-delete:hover{ 
-  background:#ffe3e3; 
-  transform: scale(1.05);
+  gap:.4rem;
+  color:#6b7280;
+  font-weight: 850;
+  font-size: .9rem;
 }
 
-.expenses-row{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: .85rem;
-}
-
-/* Asegurar visibilidad de números e inputs */
-.ph-form-group input[type="number"],
-.ph-form-group input[type="date"],
-.ph-form-group input[type="text"] {
-  color: #1a202c !important;
-  -webkit-text-fill-color: #1a202c !important;
-  opacity: 1 !important;
-  font-weight: 600;
-}
-
-.ph-form-group input[type="number"]:focus,
-.ph-form-group input[type="date"]:focus,
-.ph-form-group input[type="text"]:focus {
-  color: #1a202c !important;
-  -webkit-text-fill-color: #1a202c !important;
-}
-
-/* Dropdowns personalizados mejorados */
-.ph-form-group select {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  background-size: 18px;
-  padding-right: 2.75rem;
-  cursor: pointer;
-  color: #1a202c !important;
-  -webkit-text-fill-color: #1a202c !important;
-  font-weight: 600;
-}
-
-.ph-form-group select option {
-  padding: 0.75rem;
-  background: white;
-  color: #1a202c;
-  font-weight: 600;
-}
-
-@media (max-width: 768px){
-  .expenses-top{ 
-    flex-direction: column; 
-  }
-}
-
-@media (max-width: 640px){
-  .expenses-header{ 
-    flex-direction: column; 
-    align-items:flex-start; 
-  }
-  .expenses-row{ 
-    grid-template-columns: 1fr; 
-  }
-}
-
-/* --- Fix papelera invisible + botón prolijo --- */
-.expense-delete{
-  border: none;
-  background: #f3f4f6;
-  color: #6b7280;
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  transition: all .15s;
-}
-.expense-delete:hover{
-  background: #fee2e2;
-  color: #dc2626;
-}
-.expense-delete svg{
-  display: block;
-}
+/* Alert igual que ya venías usando */
 .ph-alert{
   margin-top: 12px;
   padding: 12px 14px;
@@ -212,5 +117,5 @@
   background: #fffbeb;
   border: 1px solid #fde68a;
   color: #92400e;
-  font-weight: 700;
+  font-weight: 800;
 }

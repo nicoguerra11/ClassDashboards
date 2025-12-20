@@ -36,6 +36,19 @@
 }
 .ph-btn-soft:hover{ background:#edf2f7; }
 
+.ph-btn-info{
+  display:flex; align-items:center; gap:.5rem;
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  color:#1e40af;
+  padding:.65rem .9rem;
+  border-radius: 12px;
+  cursor:pointer;
+  font-weight: 800;
+  transition: all .2s;
+}
+.ph-btn-info:hover{ background:#dbeafe; }
+
 .ph-btn-danger{
   display:flex; align-items:center; gap:.5rem;
   border: 1px solid #fed7d7;
@@ -111,6 +124,7 @@
 
 .group-actions{
   display:flex;
+  flex-direction: column;
   gap:.65rem;
 }
 
@@ -144,15 +158,32 @@
   border-radius: 20px;
   box-shadow: 0 25px 80px rgba(0,0,0,.25);
   overflow:hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
 }
+
+.ph-modal.students-modal{
+  max-width: 600px;
+}
+
 .ph-modal-header{
   display:flex;
   align-items:center;
   justify-content:space-between;
   padding: 1.25rem 1.25rem 1rem;
   border-bottom: 1px solid #edf2f7;
+  flex-shrink: 0;
 }
-.ph-modal-header h2{ margin:0; font-size:1.35rem; font-weight: 900; color:#1a202c; }
+.ph-modal-header h2{ 
+  margin:0; 
+  font-size:1.35rem; 
+  font-weight: 900; 
+  color:#1a202c;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
 .ph-icon-btn{
   border:0;
   background:#f7fafc;
@@ -164,10 +195,16 @@
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 .ph-icon-btn:hover{ background:#edf2f7; }
 
-.ph-form{ padding: 1.25rem; display:flex; flex-direction:column; gap: 1rem; }
+.ph-form{ 
+  padding: 1.25rem; 
+  display:flex; 
+  flex-direction:column; 
+  gap: 1rem; 
+}
 .ph-form-group{ display:flex; flex-direction:column; gap:.45rem; }
 .ph-form-group label{ font-weight: 800; font-size:.9rem; color:#2d3748; }
 .ph-form-group input,
@@ -227,6 +264,66 @@
   border: 1px solid #edf2f7;
   padding: .45rem .65rem;
   border-radius: 12px;
+}
+
+/* Students List in Modal */
+.students-list-container{
+  padding: 1.25rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.ph-empty-students{
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: #9ca3af;
+}
+
+.ph-empty-students svg{
+  margin: 0 auto 1rem;
+  color: #d1d5db;
+}
+
+.ph-empty-students p{
+  margin: 0;
+  font-weight: 600;
+}
+
+.students-list{
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.student-item{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+  border: 2px solid #e5e7eb;
+  border-radius: 16px;
+  transition: all 0.2s;
+}
+
+.student-item:hover{
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+  transform: translateX(4px);
+}
+
+.student-item-info h4{
+  margin: 0 0 0.25rem 0;
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #111827;
+}
+
+.student-phone{
+  display: inline-block;
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 600;
 }
 
 /* Loading */

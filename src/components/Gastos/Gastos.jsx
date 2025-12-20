@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../supabaseClient'
-import { Plus, Trash2, X, Search, Receipt, Calendar } from 'lucide-react'
+import { Plus, Trash2, Search, Receipt, Calendar, X } from 'lucide-react'
 import './Gastos.css'
 
 import ConfirmDialog from '../Common/ConfirmDialog'
 import { useConfirm } from '../Common/useConfirm'
 import CustomSelect from '../Common/CustomSelect'
+import PhDatePicker from '../Common/PhDatePicker'
 
 function Gastos({ profesorId }) {
   const { confirm, dialogProps } = useConfirm()
@@ -16,17 +17,38 @@ function Gastos({ profesorId }) {
   const [showModal, setShowModal] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
 
-  const today = new Date().toISOString().slice(0, 10)
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth() + 1)
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear())
+
+  const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
   const [formData, setFormData] = useState({
     descripcion: '',
     monto: '',
     categoria: 'Material',
-    fecha: today
+    fecha: todayISO
   })
 
   const categorias = ['Material', 'Alquiler', 'Servicios', 'Transporte', 'Equipamiento', 'Otro']
-  const categoriaOptions = categorias.map(c => ({ value: c, label: c }))
+  const categoriaOptions = categorias.map((c) => ({ value: c, label: c }))
+
+  const getMesNombre = (m) => {
+    const meses = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ]
+    return meses[m - 1] || m
+  }
+
+  const monthOptions = [...Array(12)].map((_, i) => ({
+    value: i + 1,
+    label: getMesNombre(i + 1)
+  }))
+
+  const yearOptions = [2023, 2024, 2025, 2026, 2027, 2028].map((y) => ({
+    value: y,
+    label: y.toString()
+  }))
 
   useEffect(() => {
     load()
@@ -36,6 +58,7 @@ function Gastos({ profesorId }) {
   const load = async () => {
     setLoading(true)
     setErrorMsg('')
+
     const { data, error } = await supabase
       .from('gastos')
       .select('*')
@@ -44,18 +67,19 @@ function Gastos({ profesorId }) {
 
     if (error) setErrorMsg('No pude cargar los gastos.')
     else setGastos(data || [])
+
     setLoading(false)
   }
 
   const openModal = () => {
     setErrorMsg('')
-    setFormData({ descripcion: '', monto: '', categoria: 'Material', fecha: today })
+    setFormData({ descripcion: '', monto: '', categoria: 'Material', fecha: todayISO })
     setShowModal(true)
   }
 
   const closeModal = () => {
     setShowModal(false)
-    setFormData({ descripcion: '', monto: '', categoria: 'Material', fecha: today })
+    setFormData({ descripcion: '', monto: '', categoria: 'Material', fecha: todayISO })
   }
 
   const addGasto = async (e) => {
@@ -68,15 +92,15 @@ function Gastos({ profesorId }) {
       return
     }
 
-    const { error } = await supabase
-      .from('gastos')
-      .insert([{
-        profesor_id: profesorId,
-        descripcion: formData.descripcion,
-        monto: montoNum,
-        categoria: formData.categoria,
-        fecha: formData.fecha
-      }])
+    const payload = {
+      profesor_id: profesorId,
+      descripcion: formData.descripcion,
+      monto: montoNum,
+      categoria: formData.categoria,
+      fecha: (formData.fecha || todayISO)
+    }
+
+    const { error } = await supabase.from('gastos').insert([payload])
 
     if (error) {
       setErrorMsg('Error al crear gasto: ' + error.message)
@@ -101,16 +125,24 @@ function Gastos({ profesorId }) {
     if (!error) await load()
   }
 
+  const gastosDelMes = useMemo(() => {
+    return gastos.filter((g) => {
+      const d = new Date(`${g.fecha}T00:00:00`)
+      if (Number.isNaN(d.getTime())) return false
+      return d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear
+    })
+  }, [gastos, selectedMonth, selectedYear])
+
   const filtered = useMemo(() => {
     const s = searchTerm.trim().toLowerCase()
-    if (!s) return gastos
-    return gastos.filter(g =>
+    if (!s) return gastosDelMes
+    return gastosDelMes.filter((g) =>
       (g.descripcion || '').toLowerCase().includes(s) ||
       (g.categoria || '').toLowerCase().includes(s)
     )
-  }, [gastos, searchTerm])
+  }, [gastosDelMes, searchTerm])
 
-  const total = useMemo(() => {
+  const totalMes = useMemo(() => {
     return filtered.reduce((acc, g) => acc + (Number(g.monto) || 0), 0)
   }, [filtered])
 
@@ -124,25 +156,41 @@ function Gastos({ profesorId }) {
   }
 
   return (
-    <div className="expenses-page">
+    <div className="ph-page gastos-page">
       <ConfirmDialog {...dialogProps} />
 
-      <div className="expenses-header">
+      <div className="ph-header">
         <div>
           <h1>Gastos</h1>
           <p>Registrá egresos (materiales, alquiler, etc.)</p>
         </div>
 
-        <button className="ph-btn-primary" onClick={openModal}>
+        <button className="ph-btn-primary" onClick={openModal} type="button">
           <Plus size={18} /> Nuevo gasto
         </button>
       </div>
 
       {errorMsg && <div className="ph-alert">{errorMsg}</div>}
 
-      <div className="expenses-top">
-        <div className="ph-card ph-search">
-          <Search size={18} className="ph-search-icon" />
+      <div className="ph-filters">
+        <div className="ph-filter-left">
+          <div className="ph-pill">
+            <Calendar size={18} />
+            <CustomSelect
+              value={selectedMonth}
+              onChange={(value) => setSelectedMonth(Number(value))}
+              options={monthOptions}
+            />
+            <CustomSelect
+              value={selectedYear}
+              onChange={(value) => setSelectedYear(Number(value))}
+              options={yearOptions}
+            />
+          </div>
+        </div>
+
+        <div className="ph-searchbar">
+          <Search size={18} />
           <input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -150,48 +198,62 @@ function Gastos({ profesorId }) {
           />
         </div>
 
-        <div className="expenses-total">
-          <Receipt size={20} />
+        <div className="ph-total gastos-total">
+          <Receipt size={18} />
           <span>Total: </span>
-          <strong>${total.toLocaleString('es-UY')}</strong>
+          <strong>${totalMes.toLocaleString('es-UY')}</strong>
         </div>
       </div>
 
-      <div className="expenses-list">
-        {filtered.map(g => (
-          <div key={g.id} className="expense-row">
-            <div className="expense-left">
-              <div className="expense-concept">
-                {g.descripcion}
-                <span className="expense-category">{g.categoria}</span>
-              </div>
-              <div className="expense-date">
-                <Calendar size={14} />
-                <span>{new Date(g.fecha).toLocaleDateString('es-UY')}</span>
-              </div>
-            </div>
-
-            <div className="expense-right">
-              <div className="expense-amount">${Number(g.monto).toLocaleString('es-UY')}</div>
-              <button
-                type="button"
-                className="expense-delete"
-                onClick={() => deleteGasto(g.id)}
-                title="Eliminar"
-                aria-label="Eliminar gasto"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {filtered.length === 0 && (
+      {filtered.length === 0 ? (
         <div className="ph-empty">
           <Receipt size={42} />
           <h2>No hay gastos</h2>
-          <p>{searchTerm ? 'No coincide ningún gasto.' : 'Agregá tu primer gasto para llevar control.'}</p>
+          <p>
+            {searchTerm
+              ? 'No coincide ningún gasto.'
+              : 'Agregá tu primer gasto para llevar control.'}
+          </p>
+        </div>
+      ) : (
+        <div className="ph-list">
+          {filtered.map((g) => (
+            <div key={g.id} className="ph-row">
+              <div className="ph-row-left">
+                <div className="ph-row-icon ph-row-icon-purple">
+                  <Receipt size={20} />
+                </div>
+
+                <div className="ph-row-info">
+                  <div className="ph-row-title">
+                    {g.descripcion}
+                    <span className="ph-badge purple">{g.categoria}</span>
+                  </div>
+
+                  <div className="gasto-date">
+                    <Calendar size={14} />
+                    <span>{new Date(`${g.fecha}T00:00:00`).toLocaleDateString('es-UY')}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="ph-row-right">
+                <div className="ph-row-amount">
+                  ${Number(g.monto).toLocaleString('es-UY')}
+                </div>
+
+                <button
+                  type="button"
+                  className="ph-icon-delete"
+                  onClick={() => deleteGasto(g.id)}
+                  title="Eliminar"
+                  aria-label="Eliminar gasto"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -225,7 +287,7 @@ function Gastos({ profesorId }) {
                 />
               </div>
 
-              <div className="expenses-row">
+              <div className="ph-grid-2">
                 <div className="ph-form-group">
                   <label>Monto *</label>
                   <input
@@ -241,10 +303,9 @@ function Gastos({ profesorId }) {
 
                 <div className="ph-form-group">
                   <label>Fecha</label>
-                  <input
-                    type="date"
+                  <PhDatePicker
                     value={formData.fecha}
-                    onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
+                    onChange={(iso) => setFormData((s) => ({ ...s, fecha: iso || todayISO }))}
                   />
                 </div>
               </div>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../supabaseClient'
-import { TrendingUp, DollarSign, Receipt, Users, Search, Calendar, History } from 'lucide-react'
+import { TrendingUp, DollarSign, Receipt, Users, Calendar, History } from 'lucide-react'
 import './Progreso.css'
 
 import CustomSelect from '../Common/CustomSelect'
@@ -11,14 +11,13 @@ function Progreso({ profesorId }) {
   const [error, setError] = useState('')
   const [mes, setMes] = useState(now.getMonth() + 1)
   const [anio, setAnio] = useState(now.getFullYear())
-  const [q, setQ] = useState('')
 
   const [estudiantes, setEstudiantes] = useState([])
   const [pagosMes, setPagosMes] = useState([])
   const [gastosMes, setGastosMes] = useState([])
 
   // para historial + gráfica (últimos 12 meses)
-  const [series, setSeries] = useState([]) // [{key:'2025-07', mes, anio, ingresos, egresos, balance}]
+  const [series, setSeries] = useState([])
 
   useEffect(() => {
     loadData()
@@ -86,11 +85,8 @@ function Progreso({ profesorId }) {
 
   const loadSeries12 = async () => {
     try {
-      // últimos 12 meses desde hoy
       const end = new Date()
       const start = new Date(end.getFullYear(), end.getMonth() - 11, 1)
-
-      // pagos: traemos último ~1 año (filtramos local por mes/año)
       const minYear = start.getFullYear()
 
       const [{ data: pagosAll, error: pErr }, { data: gastosAll, error: gErr }] = await Promise.all([
@@ -112,7 +108,6 @@ function Progreso({ profesorId }) {
 
       const map = new Map()
 
-      // init 12 months buckets
       for (let i = 0; i < 12; i++) {
         const d = new Date(end.getFullYear(), end.getMonth() - i, 1)
         const y = d.getFullYear()
@@ -121,14 +116,12 @@ function Progreso({ profesorId }) {
         map.set(key, { key, anio: y, mes: m, ingresos: 0, egresos: 0, balance: 0 })
       }
 
-      // ingresos
       for (const p of (pagosAll || [])) {
         const key = `${p.anio}-${String(p.mes).padStart(2, '0')}`
         if (!map.has(key)) continue
         map.get(key).ingresos += Number(p.monto) || 0
       }
 
-      // egresos
       for (const g of (gastosAll || [])) {
         const d = new Date(g.fecha)
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
@@ -138,12 +131,11 @@ function Progreso({ profesorId }) {
 
       const arr = Array.from(map.values())
         .map(x => ({ ...x, balance: x.ingresos - x.egresos }))
-        .sort((a, b) => (a.key > b.key ? 1 : -1)) // asc
+        .sort((a, b) => (a.key > b.key ? 1 : -1))
 
       setSeries(arr)
     } catch (err) {
       console.error(err)
-      // no rompo la pantalla por el historial
     }
   }
 
@@ -161,15 +153,6 @@ function Progreso({ profesorId }) {
     if (!total) return 0
     return Math.round((estudiantesPagaron.length / total) * 100)
   }, [estudiantes, estudiantesPagaron])
-
-  const filterByQuery = (list) => {
-    const query = q.trim().toLowerCase()
-    if (!query) return list
-    return list.filter(e => (`${e.nombre} ${e.apellido}`).toLowerCase().includes(query))
-  }
-
-  const pagaronFiltrado = useMemo(() => filterByQuery(estudiantesPagaron), [estudiantesPagaron, q])
-  const pendientesFiltrado = useMemo(() => filterByQuery(estudiantesPendientes), [estudiantesPendientes, q])
 
   const formatMoney = (n) => `$${Number(n || 0).toLocaleString('es-UY')}`
 
@@ -204,15 +187,6 @@ function Progreso({ profesorId }) {
             <Calendar size={18} />
             <CustomSelect value={mes} onChange={setMes} options={monthOptions} />
             <CustomSelect value={anio} onChange={setAnio} options={yearOptions} />
-          </div>
-
-          <div className="search">
-            <Search size={18} />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar estudiante..."
-            />
           </div>
         </div>
       </div>
@@ -278,10 +252,10 @@ function Progreso({ profesorId }) {
         </div>
       </div>
 
-      {/* Historial + Gráfica */}
+      {/* Historial + Gráfica mejorada */}
       <div className="progreso-history">
         <div className="ph-history-header">
-          <h3><History size={18} /> Historial (últimos 12 meses)</h3>
+          <h3><History size={20} /> Historial (últimos 12 meses)</h3>
           <p>Comparativa de ingresos y balance mensual.</p>
         </div>
 
@@ -317,14 +291,14 @@ function Progreso({ profesorId }) {
         <div className="list-card">
           <div className="list-header">
             <h3>Pagaron</h3>
-            <span className="pill">{pagaronFiltrado.length}</span>
+            <span className="pill">{estudiantesPagaron.length}</span>
           </div>
 
-          {pagaronFiltrado.length === 0 ? (
+          {estudiantesPagaron.length === 0 ? (
             <div className="empty">Nadie pagó (todavía). Tranquilo, todavía es temprano… ¿no?</div>
           ) : (
             <div className="list">
-              {pagaronFiltrado.map((e) => (
+              {estudiantesPagaron.map((e) => (
                 <div key={e.id} className="row">
                   <div className="row-name">{e.nombre} {e.apellido}</div>
                   <span className="tag ok">Pagó</span>
@@ -337,14 +311,14 @@ function Progreso({ profesorId }) {
         <div className="list-card">
           <div className="list-header">
             <h3>Pendientes</h3>
-            <span className="pill danger">{pendientesFiltrado.length}</span>
+            <span className="pill danger">{estudiantesPendientes.length}</span>
           </div>
 
-          {pendientesFiltrado.length === 0 ? (
+          {estudiantesPendientes.length === 0 ? (
             <div className="empty ok">Perfecto: cero pendientes. Tu yo del futuro te agradece.</div>
           ) : (
             <div className="list">
-              {pendientesFiltrado.map((e) => (
+              {estudiantesPendientes.map((e) => (
                 <div key={e.id} className="row">
                   <div className="row-name">{e.nombre} {e.apellido}</div>
                   <span className="tag danger">Pendiente</span>
