@@ -45,10 +45,14 @@ function Gastos({ profesorId }) {
     label: getMesNombre(i + 1)
   }))
 
-  const yearOptions = [2023, 2024, 2025, 2026, 2027, 2028].map((y) => ({
-    value: y,
-    label: y.toString()
-  }))
+  const yearOptions = useMemo(() => {
+    const startYear = 2023
+    const endYear = new Date().getFullYear() + 3
+    return Array.from({ length: endYear - startYear + 1 }, (_, i) => {
+      const y = startYear + i
+      return { value: y, label: String(y) }
+    })
+  }, [])
 
   useEffect(() => {
     load()
@@ -209,11 +213,7 @@ function Gastos({ profesorId }) {
         <div className="ph-empty">
           <Receipt size={42} />
           <h2>No hay gastos</h2>
-          <p>
-            {searchTerm
-              ? 'No coincide ningún gasto.'
-              : 'Agregá tu primer gasto para llevar control.'}
-          </p>
+          <p>{searchTerm ? 'No coincide ningún gasto.' : 'Agregá tu primer gasto para llevar control.'}</p>
         </div>
       ) : (
         <div className="ph-list">
@@ -238,10 +238,9 @@ function Gastos({ profesorId }) {
               </div>
 
               <div className="ph-row-right">
-                <div className="ph-row-amount">
+                <div className="ph-row-amount gasto-amount">
                   ${Number(g.monto).toLocaleString('es-UY')}
                 </div>
-
                 <button
                   type="button"
                   className="ph-icon-delete"
@@ -306,6 +305,7 @@ function Gastos({ profesorId }) {
                   <PhDatePicker
                     value={formData.fecha}
                     onChange={(iso) => setFormData((s) => ({ ...s, fecha: iso || todayISO }))}
+                    align="right"
                   />
                 </div>
               </div>

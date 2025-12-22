@@ -35,7 +35,13 @@ function Progreso({ profesorId }) {
   }
 
   const monthOptions = [...Array(12)].map((_, i) => ({ value: i + 1, label: monthName(i + 1) }))
-  const yearOptions = [2023, 2024, 2025, 2026, 2027].map(y => ({ value: y, label: y.toString() }))
+const START_YEAR = 2023
+const FUTURE_YEARS = 3 // mostrará hasta (año actual + 2)
+
+const yearOptions = Array.from(
+  { length: (now.getFullYear() + FUTURE_YEARS) - START_YEAR + 1 },
+  (_, i) => START_YEAR + i
+).map(y => ({ value: y, label: y.toString() }))
 
   const loadData = async () => {
     try {

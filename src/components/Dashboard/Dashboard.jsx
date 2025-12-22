@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import {
   Home,
@@ -10,7 +11,8 @@ import {
   GraduationCap,
   AlertCircle,
   DollarSign,
-  Receipt
+  Receipt,
+  X
 } from 'lucide-react'
 
 import Estudiantes from '../Estudiantes/Estudiantes'
@@ -22,21 +24,40 @@ import Progreso from '../Progreso/Progreso'
 import './Dashboard.css'
 
 function Dashboard({ session }) {
+  const navigate = useNavigate()
+
   const [activeTab, setActiveTab] = useState('dashboard')
   const [profesor, setProfesor] = useState(null)
   const [loading, setLoading] = useState(true)
+
   const [stats, setStats] = useState({
     totalEstudiantes: 0,
     estudiantesMesActual: 0,
     totalGrupos: 0,
     ingresoMensual: 0,
-    pagosPendientesPreview: [],
     pagosPendientesTotal: 0,
-    progresoPromedio: 0
+    pagosPendientesPreview: [],
+    pagosPendientesAll: []
   })
 
+  const [openPendientes, setOpenPendientes] = useState(false)
+
   useEffect(() => {
-    getProfesor()
+    const userId = session?.user?.id
+    if (!userId) {
+      navigate('/login', { replace: true })
+      return
+    }
+
+    getOrCreateProfesor(userId)
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      if (!newSession?.user) navigate('/login', { replace: true })
+    })
+
+    return () => {
+      sub?.subscription?.unsubscribe?.()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -45,18 +66,53 @@ function Dashboard({ session }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profesor])
 
-  const getProfesor = async () => {
+  const getOrCreateProfesor = async (userId) => {
+    setLoading(true)
     try {
-      const { data, error } = await supabase
+      const { data: prof, error: profError } = await supabase
         .from('profesores')
         .select('*')
-        .eq('id', session.user.id)
+        .eq('id', userId)
+        .maybeSingle()
+
+      if (profError) throw profError
+
+      if (prof) {
+        setProfesor(prof)
+        return
+      }
+
+      const email = session?.user?.email?.toLowerCase() || ''
+      const meta = session?.user?.user_metadata || {}
+      const nombre = (meta.nombre || '').trim()
+      const apellido = (meta.apellido || '').trim()
+
+      const safeNombre = nombre || 'Profesor'
+      const safeApellido = apellido || 'SinApellido'
+
+      const { data: created, error: createError } = await supabase
+        .from('profesores')
+        .upsert(
+          [
+            {
+              id: userId,
+              nombre: safeNombre,
+              apellido: safeApellido,
+              email,
+              verificado: false,
+              deshabilitado: false
+            }
+          ],
+          { onConflict: 'id' }
+        )
+        .select('*')
         .single()
 
-      if (error) throw error
-      setProfesor(data)
-    } catch (error) {
-      console.error('Error:', error)
+      if (createError) throw createError
+      setProfesor(created)
+    } catch (err) {
+      console.error('Error cargando/creando profesor:', err)
+      navigate('/login', { replace: true })
     } finally {
       setLoading(false)
     }
@@ -64,10 +120,10 @@ function Dashboard({ session }) {
 
   const loadStats = async () => {
     try {
-      // Obtener todos los estudiantes
+      // Estudiantes (completo, porque lo vamos a usar para modal)
       const { data: estudiantes, error: eEst } = await supabase
         .from('estudiantes')
-        .select('id, created_at')
+        .select('id, nombre, apellido, created_at')
         .eq('profesor_id', profesor.id)
 
       if (eEst) throw eEst
@@ -75,9 +131,9 @@ function Dashboard({ session }) {
       const ahora = new Date()
       const mesActualDate = new Date(ahora.getFullYear(), ahora.getMonth(), 1)
       const estudiantesMes =
-        estudiantes?.filter(e => new Date(e.created_at) >= mesActualDate).length || 0
+        estudiantes?.filter((e) => new Date(e.created_at) >= mesActualDate).length || 0
 
-      // Obtener grupos
+      // Grupos
       const { data: grupos, error: eGrp } = await supabase
         .from('grupos')
         .select('*')
@@ -88,7 +144,7 @@ function Dashboard({ session }) {
       const mes = ahora.getMonth() + 1
       const anio = ahora.getFullYear()
 
-      // Obtener pagos del mes actual
+      // Pagos del mes actual (solo para calcular ingreso mensual y who paid)
       const { data: pagos, error: ePag } = await supabase
         .from('pagos')
         .select('monto, estudiante_id')
@@ -101,68 +157,21 @@ function Dashboard({ session }) {
       const totalIngresos =
         pagos?.reduce((sum, p) => sum + (Number(p.monto) || 0), 0) || 0
 
-      // ✅ ARREGLO: Crear Set de IDs que SÍ pagaron este mes
-      const idsConPago = new Set(pagos?.map(p => p.estudiante_id) || [])
+      const idsConPago = new Set(pagos?.map((p) => String(p.estudiante_id)) || [])
+      const pendientesAll =
+        (estudiantes || []).filter((e) => !idsConPago.has(String(e.id))) || []
 
-      // ✅ Filtrar estudiantes que NO están en el Set
-      const pendientesAll = estudiantes?.filter(e => !idsConPago.has(e.id)) || []
-
-      // Obtener datos completos de los 3 primeros pendientes
-      let pendientesPreview = []
-      if (pendientesAll.length > 0) {
-        const { data: estudiantesCompletos, error: eCompletos } = await supabase
-          .from('estudiantes')
-          .select('id, nombre, apellido')
-          .in('id', pendientesAll.slice(0, 3).map(e => e.id))
-
-        if (!eCompletos) {
-          pendientesPreview = estudiantesCompletos || []
-        }
-      }
-
-      // Progreso promedio
-      let progresoPromedio = 0
-
-      if (estudiantes?.length) {
-        try {
-          const { data: clases, error: eCla } = await supabase
-            .from('clases')
-            .select('estudiante_id, asistio')
-            .in('estudiante_id', estudiantes.map(e => e.id))
-
-          if (!eCla && clases?.length) {
-            const porEstudiante = new Map()
-
-            for (const c of clases) {
-              if (!porEstudiante.has(c.estudiante_id)) {
-                porEstudiante.set(c.estudiante_id, { total: 0, asistidas: 0 })
-              }
-              const obj = porEstudiante.get(c.estudiante_id)
-              obj.total += 1
-              if (c.asistio) obj.asistidas += 1
-            }
-
-            const porcentajes = [...porEstudiante.values()].map(v =>
-              v.total > 0 ? (v.asistidas / v.total) * 100 : 0
-            )
-
-            progresoPromedio = porcentajes.length
-              ? Math.round(porcentajes.reduce((a, b) => a + b, 0) / porcentajes.length)
-              : 0
-          }
-        } catch (errClases) {
-          // Silencioso: si no existe la tabla, progreso = 0
-        }
-      }
+      // Preview (primeros 3) para banner o lo que quieras
+      const pendientesPreview = pendientesAll.slice(0, 3)
 
       setStats({
         totalEstudiantes: estudiantes?.length || 0,
         estudiantesMesActual: estudiantesMes,
         totalGrupos: grupos?.length || 0,
         ingresoMensual: totalIngresos,
-        pagosPendientesPreview: pendientesPreview,
         pagosPendientesTotal: pendientesAll.length,
-        progresoPromedio
+        pagosPendientesPreview: pendientesPreview,
+        pagosPendientesAll: pendientesAll
       })
     } catch (error) {
       console.error('Error al cargar estadísticas:', error)
@@ -171,7 +180,17 @@ function Dashboard({ session }) {
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
+    navigate('/login', { replace: true })
   }
+
+  const closePendientes = () => setOpenPendientes(false)
+
+  const pendientesTitle = useMemo(() => {
+    const n = stats.pagosPendientesTotal
+    if (n === 0) return 'Pagos al día 🎉'
+    if (n === 1) return '1 pago pendiente'
+    return `${n} pagos pendientes`
+  }, [stats.pagosPendientesTotal])
 
   if (loading) {
     return (
@@ -181,7 +200,24 @@ function Dashboard({ session }) {
     )
   }
 
-  if (profesor && !profesor.verificado) {
+  if (!profesor) {
+    return (
+      <div className="verification-pending">
+        <div className="verification-card">
+          <div className="warning-icon">
+            <AlertCircle size={60} />
+          </div>
+          <h2>No se pudo cargar tu perfil</h2>
+          <p>Probá cerrar sesión y volver a entrar.</p>
+          <button onClick={handleLogout} className="btn-logout">
+            Ir a Login
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!profesor.verificado) {
     return (
       <div className="verification-pending">
         <div className="verification-card">
@@ -192,7 +228,9 @@ function Dashboard({ session }) {
           <p>Tu cuenta necesita ser verificada por un administrador.</p>
           <div className="info-box">
             <strong>Información:</strong>
-            <p>{profesor.nombre} {profesor.apellido}</p>
+            <p>
+              {profesor.nombre} {profesor.apellido}
+            </p>
             <p>{profesor.email}</p>
           </div>
           <button onClick={handleLogout} className="btn-logout">
@@ -228,8 +266,10 @@ function Dashboard({ session }) {
 
           <div className="header-right">
             <div className="user-info">
-              <p className="user-name">{profesor?.nombre} {profesor?.apellido}</p>
-              <p className="user-email">{profesor?.email}</p>
+              <p className="user-name">
+                {profesor.nombre} {profesor.apellido}
+              </p>
+              <p className="user-email">{profesor.email}</p>
             </div>
             <button onClick={handleLogout} className="btn-logout-header" title="Cerrar sesión">
               <LogOut size={20} />
@@ -278,9 +318,7 @@ function Dashboard({ session }) {
                   </div>
                 </div>
                 {stats.estudiantesMesActual > 0 && (
-                  <div className="stat-badge">
-                    +{stats.estudiantesMesActual} este mes
-                  </div>
+                  <div className="stat-badge">+{stats.estudiantesMesActual} este mes</div>
                 )}
               </div>
 
@@ -308,46 +346,30 @@ function Dashboard({ session }) {
                 </div>
               </div>
 
-              <div className="stat-card">
+              {/* ✅ NUEVA: Pagos pendientes (clic abre modal) */}
+              <button
+                type="button"
+                className="stat-card stat-card-clickable"
+                onClick={() => stats.pagosPendientesTotal > 0 && setOpenPendientes(true)}
+                title={stats.pagosPendientesTotal > 0 ? 'Ver estudiantes pendientes' : 'No hay pendientes'}
+              >
                 <div className="stat-content">
                   <div className="stat-info">
-                    <p className="stat-label">Progreso Promedio</p>
-                    <h3 className="stat-value">{stats.progresoPromedio}%</h3>
+                    <p className="stat-label">Pagos Pendientes (mes)</p>
+                    <h3 className="stat-value">{stats.pagosPendientesTotal}</h3>
                   </div>
-                  <div className="stat-icon purple">
-                    <TrendingUp size={32} />
+                  <div className="stat-icon red">
+                    <AlertCircle size={32} />
                   </div>
                 </div>
-              </div>
+
+                {stats.pagosPendientesTotal > 0 && (
+                  <div className="stat-badge badge-red">Ver detalle</div>
+                )}
+              </button>
             </div>
 
-            {stats.pagosPendientesPreview.length > 0 && (
-              <div className="pending-payments">
-                <div className="section-header">
-                  <div className="section-icon">
-                    <AlertCircle size={24} />
-                  </div>
-                  <h2>Pagos Pendientes</h2>
-                </div>
-
-                <div className="payments-list">
-                  {stats.pagosPendientesPreview.map((estudiante) => (
-                    <div key={estudiante.id} className="payment-item">
-                      <span className="payment-name">
-                        {estudiante.nombre} {estudiante.apellido}
-                      </span>
-                      <span className="payment-badge">Pago pendiente</span>
-                    </div>
-                  ))}
-                </div>
-
-                {stats.pagosPendientesTotal > stats.pagosPendientesPreview.length && (
-                  <div style={{ marginTop: 10, color: '#6b7280', fontWeight: 700 }}>
-                    Mostrando {stats.pagosPendientesPreview.length} de {stats.pagosPendientesTotal}.
-                  </div>
-                )}
-              </div>
-            )}
+            {/* ❌ Eliminamos el bloque rojo de abajo para que no sea redundante */}
           </div>
         )}
 
@@ -356,6 +378,65 @@ function Dashboard({ session }) {
         {activeTab === 'pagos' && <Pagos profesorId={session.user.id} />}
         {activeTab === 'gastos' && <Gastos profesorId={session.user.id} />}
         {activeTab === 'progreso' && <Progreso profesorId={session.user.id} />}
+
+        {/* ✅ MODAL PENDIENTES (estilo tuyo) */}
+        {openPendientes && (
+          <div className="ph-confirm-bg" onMouseDown={closePendientes}>
+            <div className="ph-confirm" onMouseDown={(e) => e.stopPropagation()}>
+              <div className="ph-confirm-header">
+                <div className="ph-confirm-icon info">
+                  <Users size={22} />
+                </div>
+
+                <div className="ph-confirm-title">
+                  <h3>{pendientesTitle}</h3>
+                  <p>Estudiantes que aún no registran pago este mes.</p>
+                </div>
+
+                <button
+                  className="ph-confirm-close"
+                  onClick={closePendientes}
+                  type="button"
+                  aria-label="Cerrar"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div style={{ padding: '0 1.25rem 1.25rem' }}>
+                {stats.pagosPendientesAll.length === 0 ? (
+                  <div style={{ color: '#6b7280', fontWeight: 700 }}>
+                    No hay pagos pendientes.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {stats.pagosPendientesAll.map((e) => (
+                      <div
+                        key={e.id}
+                        style={{
+                          border: '2px solid #f3f4f6',
+                          borderRadius: 16,
+                          padding: '1rem',
+                          background: '#fff'
+                        }}
+                      >
+                        <div style={{ fontWeight: 900, color: '#111827' }}>
+                          {e.nombre} {e.apellido}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ marginTop: 16 }}>
+                  <button className="ph-btn-secondary" type="button" onClick={closePendientes}>
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )

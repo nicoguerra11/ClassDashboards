@@ -1,3 +1,4 @@
+// Estudiantes.jsx
 import { useState, useEffect } from 'react'
 import { supabase } from '../../supabaseClient'
 import {
@@ -12,7 +13,8 @@ import {
   Users,
   History,
   Calendar,
-  DollarSign
+  DollarSign,
+  StickyNote
 } from 'lucide-react'
 import './Estudiantes.css'
 
@@ -28,6 +30,13 @@ function Estudiantes({ profesorId }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
+
+  // ✅ Notas
+  const [showNotesModal, setShowNotesModal] = useState(false)
+  const [studentNotes, setStudentNotes] = useState([])
+  const [newNote, setNewNote] = useState('')
+  const [savingNote, setSavingNote] = useState(false)
+
   const [selectedStudent, setSelectedStudent] = useState(null)
   const [studentHistory, setStudentHistory] = useState([])
   const [editingEstudiante, setEditingEstudiante] = useState(null)
@@ -91,16 +100,27 @@ function Estudiantes({ profesorId }) {
     if (!error && data) setStudentHistory(data)
   }
 
+  // ✅ Notas: cargar
+  const loadStudentNotes = async (estudianteId) => {
+    const { data, error } = await supabase
+      .from('estudiante_notas')
+      .select('*')
+      .eq('estudiante_id', estudianteId)
+      .order('created_at', { ascending: false })
+
+    if (!error) setStudentNotes(data || [])
+  }
+
   const hasPagadoEsteMes = (pagos) => {
     if (!pagos || pagos.length === 0) return false
     const ahora = new Date()
     const mesActual = ahora.getMonth() + 1
     const anioActual = ahora.getFullYear()
-    return pagos.some(p => p.mes === mesActual && p.anio === anioActual)
+    return pagos.some((p) => p.mes === mesActual && p.anio === anioActual)
   }
 
   const getFilteredEstudiantes = () => {
-    let filtered = estudiantes.filter(e => {
+    let filtered = estudiantes.filter((e) => {
       const s = searchTerm.toLowerCase()
       return (
         e.nombre.toLowerCase().includes(s) ||
@@ -110,9 +130,9 @@ function Estudiantes({ profesorId }) {
     })
 
     if (filterTab === 'pagaron') {
-      filtered = filtered.filter(e => hasPagadoEsteMes(e.pagos))
+      filtered = filtered.filter((e) => hasPagadoEsteMes(e.pagos))
     } else if (filterTab === 'pendientes') {
-      filtered = filtered.filter(e => !hasPagadoEsteMes(e.pagos))
+      filtered = filtered.filter((e) => !hasPagadoEsteMes(e.pagos))
     }
 
     return filtered
@@ -162,6 +182,46 @@ function Estudiantes({ profesorId }) {
     setShowHistoryModal(false)
     setSelectedStudent(null)
     setStudentHistory([])
+  }
+
+  // ✅ Notas: abrir/cerrar
+  const openNotesModal = async (estudiante) => {
+    setSelectedStudent(estudiante)
+    await loadStudentNotes(estudiante.id)
+    setShowNotesModal(true)
+  }
+
+  const closeNotesModal = () => {
+    setShowNotesModal(false)
+    setSelectedStudent(null)
+    setStudentNotes([])
+    setNewNote('')
+    setSavingNote(false)
+  }
+
+  // ✅ Notas: agregar
+  const addStudentNote = async () => {
+    if (!selectedStudent) return
+    const content = (newNote || '').trim()
+    if (!content) return
+
+    setSavingNote(true)
+    try {
+      const { error } = await supabase
+        .from('estudiante_notas')
+        .insert([{
+          estudiante_id: selectedStudent.id,
+          profesor_id: profesorId,
+          contenido: content
+        }])
+
+      if (!error) {
+        setNewNote('')
+        await loadStudentNotes(selectedStudent.id)
+      }
+    } finally {
+      setSavingNote(false)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -224,6 +284,14 @@ function Estudiantes({ profesorId }) {
     return meses[mes - 1] || mes
   }
 
+  const formatDateTimeUy = (iso) => {
+    try {
+      return new Date(iso).toLocaleString('es-UY')
+    } catch {
+      return ''
+    }
+  }
+
   if (loading) {
     return (
       <div className="students-loading">
@@ -235,12 +303,12 @@ function Estudiantes({ profesorId }) {
     )
   }
 
-  const pagaron = estudiantes.filter(e => hasPagadoEsteMes(e.pagos)).length
+  const pagaron = estudiantes.filter((e) => hasPagadoEsteMes(e.pagos)).length
   const pendientes = estudiantes.length - pagaron
 
   const grupoOptions = [
     { value: '', label: 'Sin grupo' },
-    ...grupos.map(g => ({ value: g.id, label: g.nombre }))
+    ...grupos.map((g) => ({ value: g.id, label: g.nombre }))
   ]
 
   return (
@@ -270,6 +338,7 @@ function Estudiantes({ profesorId }) {
           Todos
           <span className="tab-badge">{estudiantes.length}</span>
         </button>
+
         <button
           className={`filter-tab ${filterTab === 'pagaron' ? 'active' : ''}`}
           onClick={() => setFilterTab('pagaron')}
@@ -278,6 +347,7 @@ function Estudiantes({ profesorId }) {
           Pagaron
           <span className="tab-badge success">{pagaron}</span>
         </button>
+
         <button
           className={`filter-tab ${filterTab === 'pendientes' ? 'active' : ''}`}
           onClick={() => setFilterTab('pendientes')}
@@ -328,7 +398,10 @@ function Estudiantes({ profesorId }) {
                   )}
                 </div>
 
-                <div className={`student-pay ${pagado ? 'ok' : 'bad'}`} title={pagado ? 'Pagado este mes' : 'Pago pendiente'}>
+                <div
+                  className={`student-pay ${pagado ? 'ok' : 'bad'}`}
+                  title={pagado ? 'Pagado este mes' : 'Pago pendiente'}
+                >
                   {pagado ? <CheckCircle size={20} /> : <XCircle size={20} />}
                 </div>
               </div>
@@ -347,14 +420,29 @@ function Estudiantes({ profesorId }) {
               </div>
 
               <div className="student-actions">
-                <button className="student-btn history" onClick={() => openHistoryModal(estudiante)} title="Ver historial">
+                <button
+                  className="student-btn history"
+                  onClick={() => openHistoryModal(estudiante)}
+                  title="Ver historial"
+                >
                   <History size={16} />
                   Historial
                 </button>
+
+                <button
+                  className="student-btn notes"
+                  onClick={() => openNotesModal(estudiante)}
+                  title="Ver notas"
+                >
+                  <StickyNote size={16} />
+                  Notas
+                </button>
+
                 <button className="student-btn edit" onClick={() => openModal(estudiante)}>
                   <Edit2 size={16} />
                   Editar
                 </button>
+
                 <button className="student-btn delete" onClick={() => handleDelete(estudiante.id)}>
                   <Trash2 size={16} />
                   Eliminar
@@ -480,6 +568,85 @@ function Estudiantes({ profesorId }) {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ Modal Notas */}
+      {showNotesModal && selectedStudent && (
+        <div className="students-modal-overlay" onMouseDown={closeNotesModal}>
+          <div className="students-modal history-modal" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="students-modal-header">
+              <h2>
+                <StickyNote size={24} />
+                Notas de {selectedStudent.nombre} {selectedStudent.apellido}
+              </h2>
+              <button className="students-icon-btn" onClick={closeNotesModal} aria-label="Cerrar">
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="history-content">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <textarea
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                  placeholder="Escribí una nota (texto libre)..."
+                  style={{
+                    width: '100%',
+                    minHeight: 110,
+                    resize: 'vertical',
+                    padding: '0.85rem 1rem',
+                    borderRadius: 14,
+                    border: '2px solid #e5e7eb',
+                    background: '#f9fafb',
+                    color: '#111827',
+                    fontWeight: 600,
+                    outline: 'none'
+                  }}
+                />
+
+                <button
+                  type="button"
+                  className="students-primary-btn"
+                  onClick={addStudentNote}
+                  disabled={savingNote || !newNote.trim()}
+                  style={{ width: '100%', opacity: savingNote || !newNote.trim() ? 0.6 : 1 }}
+                >
+                  {savingNote ? 'Guardando…' : 'Agregar nota'}
+                </button>
+              </div>
+
+              <div style={{ marginTop: 16 }}>
+                {studentNotes.length === 0 ? (
+                  <div style={{ color: '#6b7280', fontWeight: 700 }}>
+                    No hay notas todavía.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {studentNotes.map((note) => (
+                      <div
+                        key={note.id}
+                        style={{
+                          background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
+                          border: '2px solid #e5e7eb',
+                          borderRadius: 16,
+                          padding: '0.9rem 1rem'
+                        }}
+                      >
+                        <div style={{ color: '#6b7280', fontWeight: 800, fontSize: '0.85rem', marginBottom: 6 }}>
+                          {formatDateTimeUy(note.created_at)}
+                        </div>
+                        <div style={{ color: '#111827', fontWeight: 700, whiteSpace: 'pre-wrap' }}>
+                          {note.contenido}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
             </div>
           </div>
         </div>

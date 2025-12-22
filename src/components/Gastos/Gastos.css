@@ -82,11 +82,11 @@
 
 .gastos-page .gastos-total{
   background: linear-gradient(135deg, #eef2ff, #f5f3ff);
-  color:#4f46e5;
+  color:#0c1018;
   box-shadow: 0 4px 15px rgba(79,70,229,.12);
 }
 .gastos-page .gastos-total strong{
-  color:#111827;
+  color:#dc2626;
 }
 
 .ph-row-icon-purple{
@@ -118,4 +118,27 @@
   border: 1px solid #fde68a;
   color: #92400e;
   font-weight: 800;
+}
+
+.gasto-amount{
+  color:#dc2626;
+  font-weight: 900;
+  font-size: 1.05rem;
+}
+/* Evita que el modal recorte el popup del datepicker */
+.gastos-page .ph-modal{
+  overflow: visible !important;
+}
+
+/* Por si el recorte viene de algún contenedor interno */
+.gastos-page .ph-form,
+.gastos-page .ph-grid-2,
+.gastos-page .ph-form-group{
+  overflow: visible;
+}
+
+/* monto en rojo (por si no lo tenías) */
+.gasto-amount{
+  color:#dc2626;
+  font-weight: 900;
 }

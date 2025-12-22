@@ -17,10 +17,10 @@ function Register() {
   const [loading, setLoading] = useState(false)
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       [e.target.name]: e.target.value
-    })
+    }))
   }
 
   const handleRegister = async (e) => {
@@ -28,48 +28,46 @@ function Register() {
     setError(null)
     setLoading(true)
 
-    if (formData.password !== formData.confirmPassword) {
+    const nombre = formData.nombre.trim()
+    const apellido = formData.apellido.trim()
+    const email = formData.email.trim().toLowerCase()
+    const password = formData.password
+    const confirmPassword = formData.confirmPassword
+
+    if (!nombre || !apellido || !email || !password || !confirmPassword) {
+      setError('Completá todos los campos')
+      setLoading(false)
+      return
+    }
+
+    if (password !== confirmPassword) {
       setError('Las contraseñas no coinciden')
       setLoading(false)
       return
     }
 
-    if (formData.password.length < 6) {
+    if (password.length < 6) {
       setError('La contraseña debe tener al menos 6 caracteres')
       setLoading(false)
       return
     }
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
+      const { error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { nombre, apellido } // el trigger lo lee de acá
+        }
       })
 
       if (authError) throw authError
 
-      if (authData.user) {
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        const { error: profileError } = await supabase
-          .from('profesores')
-          .insert([
-            {
-              id: authData.user.id,
-              nombre: formData.nombre,
-              apellido: formData.apellido,
-              email: formData.email,
-              verificado: false,
-            }
-          ])
-
-        if (profileError) throw profileError
-        
-        await supabase.auth.signOut()
-        setSuccess(true)
-      }
-    } catch (error) {
-      setError(error.message || 'Error al crear la cuenta')
+      // Si usás confirmación por email, acá ya está bien: el trigger se ejecuta cuando se crea el user.
+      await supabase.auth.signOut()
+      setSuccess(true)
+    } catch (err) {
+      setError(err?.message || 'Error al crear la cuenta')
     } finally {
       setLoading(false)
     }
@@ -87,16 +85,16 @@ function Register() {
           <div className="success-icon">
             <CheckCircle size={80} />
           </div>
-          
+
           <h2>¡Registro exitoso!</h2>
-          
+
           <div className="warning-box">
             <p className="warning-title">⚠️ Cuenta pendiente de verificación</p>
             <p className="warning-text">
               Tu cuenta necesita ser verificada por un administrador. Te notificaremos cuando esté lista.
             </p>
           </div>
-          
+
           <Link to="/login" className="btn-primary">
             Ir a Iniciar Sesión
           </Link>
@@ -119,7 +117,7 @@ function Register() {
             <GraduationCap size={48} />
           </div>
         </div>
-        
+
         <div className="register-header">
           <h1>Crear Cuenta</h1>
           <p>Únete a ProfesorHub</p>

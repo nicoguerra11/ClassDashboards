@@ -481,3 +481,23 @@
   }
 }
 
+.stat-card-clickable {
+  border: none;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+}
+
+.stat-card-clickable:disabled {
+  cursor: not-allowed;
+}
+
+.stat-icon.red {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.badge-red {
+  background: #fee2e2;
+  color: #991b1b;
+}

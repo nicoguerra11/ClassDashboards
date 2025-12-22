@@ -74,8 +74,9 @@
 
 /* Popover (portal) */
 .ph-date-popover {
-    pointer-events: auto;
-  /* position, top, left, width por inline style */
+  pointer-events: auto;
+  /* position/top/left/width vienen por inline style */
+  max-width: calc(100vw - 16px); /* defensivo */
 }
 
 .ph-date-card {
@@ -86,8 +87,6 @@
   box-shadow: 0 20px 60px rgba(0,0,0,.15), 0 0 0 1px rgba(124,58,237,.10);
   overflow: hidden;
   animation: phDateIn .18s cubic-bezier(0.4, 0, 0.2, 1);
-
-  /* clave para look google */
   min-width: 320px;
 }
 
@@ -163,7 +162,7 @@
 }
 
 .ph-date-day.outside {
-  color: #9ca3af; /* días del mes anterior/siguiente */
+  color: #9ca3af;
   font-weight: 800;
 }
 
