@@ -55,7 +55,7 @@ function CustomSelect({ value, onChange, options = [], placeholder = 'Selecciona
       top,
       left: rect.left,
       width: rect.width,
-      zIndex: 999999,
+      zIndex: 999999999,
       maxHeight: maxH,
       overflow: 'hidden'
     })

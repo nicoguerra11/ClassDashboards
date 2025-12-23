@@ -100,63 +100,83 @@ function PhDatePicker({
 
   const close = useCallback(() => setIsOpen(false), [])
 
-  const computeLeft = (rect, desiredWidth) => {
-    let left
-
-    if (align === 'right') {
-      // ✅ abre hacia la izquierda
-      left = rect.right - desiredWidth
-    } else if (align === 'left') {
-      left = rect.left
-    } else {
-      // center
-      left = rect.left + rect.width / 2 - desiredWidth / 2
-    }
-
-    // clamp horizontal
-    left = Math.min(Math.max(8, left), window.innerWidth - desiredWidth - 8)
-    return left
-  }
-
   const updatePosition = useCallback(() => {
     if (!triggerRef.current) return
 
     const rect = triggerRef.current.getBoundingClientRect()
     const desiredWidth = Math.max(320, rect.width)
-    const left = computeLeft(rect, desiredWidth)
+    
+    // Calcular left basado en align
+    let left
+    if (align === 'right') {
+      left = rect.right - desiredWidth
+    } else if (align === 'left') {
+      left = rect.left
+    } else {
+      left = rect.left + rect.width / 2 - desiredWidth / 2
+    }
+    
+    // Clamp horizontal con margen
+    left = Math.min(Math.max(12, left), window.innerWidth - desiredWidth - 12)
 
+    // Posición inicial (abajo por defecto)
     setDropdownStyle({
       position: 'fixed',
       top: rect.bottom + 8,
       left,
       width: desiredWidth,
-      zIndex: 999999
+      zIndex: 2147483647
     })
 
+    // Después del primer render, calcular si necesita abrir arriba
     requestAnimationFrame(() => {
       if (!popoverRef.current) return
 
       const popRect = popoverRef.current.getBoundingClientRect()
       const popH = popRect.height
+      
+      const spaceBelow = window.innerHeight - rect.bottom - 16
+      const spaceAbove = rect.top - 16
+      
+      // Solo abre arriba si no cabe abajo Y hay más espacio arriba
+      const shouldOpenUp = spaceBelow < popH && spaceAbove > spaceBelow
 
-      const spaceBelow = window.innerHeight - rect.bottom
-      const spaceAbove = rect.top
-      const shouldOpenUp = spaceBelow < popH + 12 && spaceAbove > spaceBelow
-
-      // recompute por si cambió viewport
-      const left2 = computeLeft(rect, desiredWidth)
+      // Recalcular left por si cambió el viewport
+      let left2
+      if (align === 'right') {
+        left2 = rect.right - desiredWidth
+      } else if (align === 'left') {
+        left2 = rect.left
+      } else {
+        left2 = rect.left + rect.width / 2 - desiredWidth / 2
+      }
+      left2 = Math.min(Math.max(12, left2), window.innerWidth - desiredWidth - 12)
 
       setDropdownStyle({
         position: 'fixed',
         left: left2,
         width: desiredWidth,
-        zIndex: 999999,
+        zIndex: 2147483647,
         top: shouldOpenUp
-          ? Math.max(8, rect.top - popH - 8)
+          ? Math.max(12, rect.top - popH - 8)
           : rect.bottom + 8
       })
     })
   }, [align])
+
+  useEffect(() => {
+    if (isOpen) {
+      // Agregar clase al body para deshabilitar clipping del modal
+      document.body.classList.add('datepicker-active')
+      // También intentar agregar al modal más cercano
+      const modal = document.querySelector('.ph-modal')
+      if (modal) modal.classList.add('datepicker-open')
+    } else {
+      document.body.classList.remove('datepicker-active')
+      const modal = document.querySelector('.ph-modal')
+      if (modal) modal.classList.remove('datepicker-open')
+    }
+  }, [isOpen])
 
   useEffect(() => {
     if (!isOpen) return
@@ -247,7 +267,7 @@ function PhDatePicker({
 
       {isOpen &&
         createPortal(
-          <div ref={popoverRef} className="ph-date-popover" style={dropdownStyle || { zIndex: 999999 }}>
+          <div ref={popoverRef} className="ph-date-popover" style={dropdownStyle || { zIndex: 2147483647 }}>
             <div className="ph-date-card">
               <div className="ph-date-head">
                 <button

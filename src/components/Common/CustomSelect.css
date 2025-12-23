@@ -59,6 +59,7 @@
 }
 
 /* IMPORTANTE: dropdown portaled a document.body y posicionado con fixed */
+/* Z-INDEX ULTRA ALTO para quedar sobre modales */
 .custom-select-dropdown {
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(20px);
@@ -67,9 +68,12 @@
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(124, 58, 237, 0.1);
   animation: dropdownSlideIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
-
+  
   /* fallback (si no se pasa inline maxHeight) */
   max-height: 280px;
+  
+  /* SOLUCIÓN: Z-index más alto que el modal */
+  z-index: 999999999 !important;
 }
 
 @keyframes dropdownSlideIn {

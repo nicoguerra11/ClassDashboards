@@ -259,7 +259,7 @@ function Dashboard({ session }) {
               <GraduationCap size={32} />
             </div>
             <div className="header-title">
-              <h1>ProfesorHub</h1>
+              <h1>GestorDocente</h1>
               <p>Plataforma de Gestión</p>
             </div>
           </div>

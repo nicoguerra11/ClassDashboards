@@ -59,7 +59,7 @@ export default function SearchableStudentSelect({
       top: rect.bottom + 10,
       left: rect.left,
       width: rect.width,
-      zIndex: 999999
+      zIndex: 999999999
     })
   }, [])
 

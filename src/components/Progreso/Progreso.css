@@ -272,7 +272,7 @@
   min-height: 240px;
 }
 
-/* Historial mejorado */
+/* ==== BLOQUE HISTORIAL ==== */
 .progreso-history{
   margin-top: 18px;
   background: #fff;
@@ -298,142 +298,269 @@
   font-weight: 600;
 }
 
-/* ✅ GRÁFICA MEJORADA - MÁS VISUAL Y PROFESIONAL */
-.ph-chart{
+/* ==== 4 CHARTS GRANDES ==== */
+.ph-chart-wrap{
   margin-top: 18px;
-  display: flex;
-  gap: 6px;
-  align-items: flex-end;
-  height: 200px;
-  padding: 20px 16px 16px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  padding: 18px;
   border-radius: 18px;
-  border: 2px solid #e2e8f0;
-  overflow-x: auto;
+  background: #ffffff;
+  border: 2px solid #eef2f7;
+  box-shadow: 0 10px 24px rgba(17,24,39,.05);
 }
 
-.ph-bar{
-  width: 44px;
+.ph-chart-title{
+  display:flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ph-chart-title h4{
+  margin:0;
+  font-size: 1.1rem;
+  font-weight: 950;
+  color:#111827;
+}
+
+.ph-chart-title span{
+  color:#6b7280;
+  font-weight: 700;
+  font-size: .95rem;
+}
+
+/* layout: y-axis + plot */
+.ph-chart2{
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
+  align-items: stretch;
+}
+
+/* Y axis */
+.ph-yaxis{
+  display:flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10px 0 34px;
+  color:#64748b;
+  font-weight: 900;
+}
+
+/* plot container */
+.ph-plot{
+  position: relative;
+  height: 220px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 2px solid #e2e8f0;
+  overflow: hidden;
+  padding: 18px 16px 36px;
+}
+
+/* grid lines */
+.ph-gridlines{
+  position:absolute;
+  inset: 18px 16px 36px;
+  display:flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.ph-gridlines > div{
+  height: 1px;
+  background: rgba(148,163,184,.35);
+}
+
+/* bars row */
+.ph-bars{
+  position:absolute;
+  inset: 18px 16px 36px;
+  display:flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+/* each bar is a button */
+.ph-bar2{
+  width: 56px;
+  flex: 0 0 auto;
   height: 100%;
-  display: flex;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  display:flex;
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
-  gap: 8px;
-  flex: 0 0 auto;
-  position: relative;
+  gap: 10px;
 }
 
-.ph-bar-fill{
+.ph-bar2:focus-visible{
+  outline: 3px solid rgba(99,102,241,.35);
+  border-radius: 12px;
+}
+
+/* bar fill */
+.ph-bar2-fill{
   width: 100%;
-  border-radius: 10px 10px 4px 4px;
-  background: linear-gradient(180deg, #3b82f6, #2563eb);
-  box-shadow: 0 8px 20px rgba(37,99,235,.25),
-              0 4px 8px rgba(37,99,235,.15),
-              inset 0 2px 4px rgba(255,255,255,.3);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 14px 14px 8px 8px;
   position: relative;
   overflow: hidden;
+
+  box-shadow:
+    0 12px 28px rgba(37,99,235,.25),
+    0 6px 12px rgba(37,99,235,.14),
+    inset 0 2px 5px rgba(255,255,255,.35);
+
+  transition: transform .22s cubic-bezier(.4,0,.2,1), filter .22s, box-shadow .22s;
 }
 
-.ph-bar-fill::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 40%;
-  background: linear-gradient(180deg, rgba(255,255,255,.4), transparent);
-  border-radius: 10px 10px 0 0;
+.ph-bar2-fill::before{
+  content:'';
+  position:absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,.42), transparent 45%);
+  border-radius: inherit;
 }
 
-.ph-bar:hover .ph-bar-fill{
-  transform: translateY(-4px) scale(1.05);
-  box-shadow: 0 12px 28px rgba(37,99,235,.35),
-              0 6px 12px rgba(37,99,235,.2);
+.ph-bar2:hover .ph-bar2-fill{
+  transform: translateY(-4px) scale(1.04);
+  filter: saturate(1.15);
+  box-shadow:
+    0 16px 34px rgba(37,99,235,.32),
+    0 8px 16px rgba(37,99,235,.18),
+    inset 0 2px 5px rgba(255,255,255,.4);
 }
 
-.ph-bar-label{
-  font-size: .7rem;
-  color: #64748b;
-  font-weight: 900;
-  text-align: center;
+/* labels */
+.ph-bar2-label{
+  font-size: .8rem;
+  color:#475569;
+  font-weight: 950;
   white-space: nowrap;
 }
 
-/* Tabla de historial */
-.ph-table{
-  margin-top: 20px;
-  display: grid;
-  gap: 10px;
+/* palette */
+.ph-blue{
+  background: linear-gradient(180deg, #60a5fa, #2563eb);
+}
+.ph-amber{
+  background: linear-gradient(180deg, #fdba74, #f97316);
+}
+.ph-green{
+  background: linear-gradient(180deg, #34d399, #059669);
+  box-shadow:
+    0 12px 28px rgba(5,150,105,.22),
+    0 6px 12px rgba(5,150,105,.14),
+    inset 0 2px 5px rgba(255,255,255,.35);
+}
+.ph-red{
+  background: linear-gradient(180deg, #fb7185, #dc2626);
+  box-shadow:
+    0 12px 28px rgba(220,38,38,.22),
+    0 6px 12px rgba(220,38,38,.14),
+    inset 0 2px 5px rgba(255,255,255,.35);
 }
 
-.ph-row{
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 14px 16px;
+/* ==== BALANCE special (baseline middle) ==== */
+.ph-plot--balance{
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(248,250,252,1) 0%,
+      rgba(248,250,252,.96) 45%,
+      rgba(248,250,252,.96) 55%,
+      rgba(248,250,252,1) 100%
+    );
+}
+
+.ph-gridlines--balance{
+  inset: 18px 16px 36px;
+}
+
+.ph-zero-line{
+  height: 1px !important;
+  background: linear-gradient(
+    to right,
+    rgba(148,163,184,.15),
+    rgba(100,116,139,.45),
+    rgba(148,163,184,.15)
+  ) !important;
+}
+
+
+/* ✅ ESTA ERA LA PIEZA QUE FALTABA:
+   zona relativa que recorta el fill absoluto y separa del label */
+.ph-bar2-zone{
+  position: relative;
+  width: 100%;
+  flex: 1;
   border-radius: 14px;
-  background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
-  border: 2px solid #e5e7eb;
-  transition: all 0.2s;
+  overflow: hidden;
 }
 
-.ph-row:hover{
-  border-color: #3b82f6;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
-  transform: translateX(4px);
-}
-
-.ph-month{
-  font-weight: 900;
-  color: #111827;
-  font-size: 1rem;
-}
-
-.ph-row-right{
+/* En balance, el botón es "zona + label" fijo (label jamás se pisa) */
+.ph-bar2--balance{
+  width: 56px;
+  height: 100%;
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: center;
   justify-content: flex-end;
+  gap: 10px;
 }
 
-.ph-pill{
-  padding: 7px 12px;
-  border-radius: 999px;
-  font-weight: 900;
-  font-size: .85rem;
-  border: 2px solid transparent;
+/* fill absoluto dentro de la zona */
+.ph-bar2-fill--abs{
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-radius: 14px;
 }
 
-.ph-pill.ok{ 
-  background:#dcfce7; 
-  color:#166534; 
-  border-color:#bbf7d0; 
+/* ✅ Bordes correctos según dirección */
+.ph-bar2-fill--abs.is-pos{
+  border-radius: 14px 14px 8px 8px;
+}
+.ph-bar2-fill--abs.is-neg{
+  border-radius: 8px 8px 14px 14px;
 }
 
-.ph-pill.warn{ 
-  background:#ffedd5; 
-  color:#9a3412; 
-  border-color:#fed7aa; 
+/* ✅ Brillo invertido para negativos (difuminado “hacia abajo”) */
+.ph-bar2-fill--abs.is-pos::before{
+  background: linear-gradient(180deg, rgba(255,255,255,.42), transparent 45%);
+}
+.ph-bar2-fill--abs.is-neg::before{
+  background: linear-gradient(0deg, rgba(255,255,255,.38), transparent 45%);
 }
 
-.ph-pill.pos{ 
-  background:#dbeafe; 
-  color:#1d4ed8; 
-  border-color:#bfdbfe; 
+/* ✅ Hover del balance: no levantamos el negativo como si fuera positivo */
+.ph-bar2--balance:hover .ph-bar2-fill--abs.is-pos{
+  transform: translateY(-3px) scale(1.03);
+}
+.ph-bar2--balance:hover .ph-bar2-fill--abs.is-neg{
+  transform: translateY(3px) scale(1.03);
 }
 
-.ph-pill.neg{ 
-  background:#fee2e2; 
-  color:#b91c1c; 
-  border-color:#fecaca; 
-}
-
-/* Responsive */
+/* ==== Responsive ==== */
 @media (max-width: 1100px) {
   .progreso-cards {
     grid-template-columns: repeat(2, minmax(230px, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .ph-chart2{
+    grid-template-columns: 90px 1fr;
+  }
+  .ph-bar2{
+    width: 46px;
+  }
+  .ph-bar2--balance{
+    width: 46px;
   }
 }
 
@@ -441,8 +568,8 @@
   .progreso-lists {
     grid-template-columns: 1fr;
   }
-  .ph-chart{
-    height: 160px;
+  .ph-plot{
+    height: 180px;
   }
 }
 
@@ -453,7 +580,13 @@
   .year-input {
     width: 80px;
   }
-  .ph-bar{
-    width: 36px;
+  .ph-bar2{
+    width: 40px;
+  }
+  .ph-bar2--balance{
+    width: 40px;
+  }
+  .ph-yaxis{
+    font-size: .9rem;
   }
 }

@@ -1,5 +1,6 @@
 .ph-date-container {
   width: 100%;
+  position: relative;
 }
 
 .ph-date-trigger {
@@ -72,22 +73,62 @@
   color: #7c3aed;
 }
 
-/* Popover (portal) */
+/* ========================================
+   SOLUCIÓN CRÍTICA: DESHABILITAR CLIPPING DEL MODAL
+   ======================================== */
+
+/* Cuando el datepicker está abierto, deshabilitamos el clipping del modal */
+body.datepicker-active .ph-modal,
+.ph-modal.datepicker-open {
+  overflow: visible !important;
+  /* CRÍTICO: Remover border-radius temporalmente para evitar clipping */
+  border-radius: 0 !important;
+}
+
+/* Mantener el header con bordes */
+body.datepicker-active .ph-modal-header {
+  border-radius: 22px 22px 0 0;
+}
+
+/* Mantener el form con bordes inferiores */
+body.datepicker-active .ph-form {
+  border-radius: 0 0 22px 22px;
+}
+
+/* Forzar overflow visible en toda la jerarquía */
+body.datepicker-active .ph-modal *,
+body.datepicker-active .ph-form,
+body.datepicker-active .ph-form *,
+body.datepicker-active .ph-grid-2,
+body.datepicker-active .ph-grid-2 *,
+body.datepicker-active .ph-form-group,
+body.datepicker-active .ph-form-group * {
+  overflow: visible !important;
+}
+
+/* El popover con z-index súper alto */
 .ph-date-popover {
-  pointer-events: auto;
-  /* position/top/left/width vienen por inline style */
-  max-width: calc(100vw - 16px); /* defensivo */
+  pointer-events: auto !important;
+  /* CRÍTICO: Más alto que cualquier modal o overlay */
+  z-index: 2147483647 !important;
+  position: fixed !important;
+  /* Asegurar que no herede restricciones */
+  overflow: visible !important;
+  isolation: isolate;
 }
 
 .ph-date-card {
-  background: rgba(255,255,255,.98);
+  background: rgba(255,255,255,1);
   backdrop-filter: blur(20px);
   border: 2px solid #e5e7eb;
   border-radius: 18px;
-  box-shadow: 0 20px 60px rgba(0,0,0,.15), 0 0 0 1px rgba(124,58,237,.10);
+  /* Sombra MÁS pronunciada para que se vea claramente */
+  box-shadow: 0 25px 75px rgba(0,0,0,.30), 0 0 0 1px rgba(124,58,237,.15);
   overflow: hidden;
   animation: phDateIn .18s cubic-bezier(0.4, 0, 0.2, 1);
   min-width: 320px;
+  /* Asegurar que sea sólido y visible */
+  opacity: 1;
 }
 
 @keyframes phDateIn {
@@ -109,6 +150,7 @@
   color: #111827;
   text-transform: capitalize;
   letter-spacing: .2px;
+  font-size: 1.05rem;
 }
 
 .ph-date-nav {

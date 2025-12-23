@@ -72,6 +72,7 @@
 }
 
 /* IMPORTANTE: ahora el popover se porta a body y se posiciona con fixed */
+/* Z-INDEX ULTRA ALTO para quedar sobre modales */
 .ss-popover {
   background: white;
   border-radius: 18px;
@@ -79,6 +80,9 @@
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.2);
   overflow: hidden;
   animation: ssIn 0.2s ease;
+  
+  /* SOLUCIÓN: Z-index más alto que el modal */
+  z-index: 999999999 !important;
 }
 
 @keyframes ssIn {

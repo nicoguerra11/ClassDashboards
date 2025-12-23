@@ -125,20 +125,94 @@
   font-weight: 900;
   font-size: 1.05rem;
 }
-/* Evita que el modal recorte el popup del datepicker */
-.gastos-page .ph-modal{
+
+/* ============================================
+   SOLUCIÓN DEFINITIVA PARA EL CALENDARIO CORTADO
+   ============================================ */
+
+/* 
+  El problema es que el modal tiene overflow:hidden y aunque 
+  el calendario se renderiza con portal fuera del modal,
+  necesitamos que el modal no oculte visualmente el contenido.
+  
+  La solución es permitir overflow visible específicamente 
+  en la página de gastos para que el calendario se vea completo.
+*/
+
+.gastos-page .ph-modal-bg {
   overflow: visible !important;
 }
 
-/* Por si el recorte viene de algún contenedor interno */
-.gastos-page .ph-form,
-.gastos-page .ph-grid-2,
-.gastos-page .ph-form-group{
-  overflow: visible;
+.gastos-page .ph-modal {
+  overflow: visible !important;
+  /* Importante: Mantener el modal contenido pero permitir que 
+     los elementos con portal (como el calendario) se vean */
 }
 
-/* monto en rojo (por si no lo tenías) */
-.gasto-amount{
-  color:#dc2626;
-  font-weight: 900;
+.gastos-page .ph-form,
+.gastos-page .ph-grid-2,
+.gastos-page .ph-form-group {
+  overflow: visible !important;
+  position: relative;
+  z-index: 1;
+}
+
+/* Asegurar que el contenedor del DatePicker no tenga restricciones */
+.gastos-page .ph-date-container {
+  overflow: visible !important;
+  position: relative;
+  z-index: 1;
+}
+
+/* El popover del calendario ya tiene z-index: 10000000 en PhDatePicker.css,
+   pero nos aseguramos que no haya conflictos */
+.ph-date-popover {
+  z-index: 999999999 !important;
+  position: fixed !important;
+}
+
+/* Ensure modal clipping is disabled for Gastos */
+body.datepicker-active .ph-modal,
+.ph-modal.datepicker-open {
+  overflow: visible !important;
+  border-radius: 0 !important;
+}
+
+/* Ensure all parent containers allow overflow when datepicker is active */
+body.datepicker-active .ph-modal,
+body.datepicker-active .ph-modal *,
+body.datepicker-active .ph-form {
+  overflow: visible !important;
+  position: static !important;
+}
+
+/* Match modal styles from Pagos */
+.gastos-page .ph-modal {
+  border-radius: 22px !important; /* Match the curved borders of Registrar Pago */
+  overflow: visible !important;
+}
+
+/* Adjust calendar positioning to fit within the modal */
+.ph-date-popover {
+  position: absolute !important; /* Change to absolute to fit within modal */
+  z-index: 9999 !important; /* Lower z-index to fit within modal hierarchy */
+  left: 50% !important; /* Center horizontally */
+  transform: translateX(-50%) !important; /* Adjust for centering */
+  width: auto !important; /* Fit within modal */
+  max-width: 90%; /* Ensure it doesn't exceed modal width */
+}
+
+/* Maintain header and form borders */
+body.datepicker-active .ph-modal-header {
+  border-radius: 22px 22px 0 0;
+}
+body.datepicker-active .ph-form {
+  border-radius: 0 0 22px 22px;
+}
+
+/* Increase the size of the calendar icon */
+.ph-date-icon {
+  width: 48px !important; /* Increase width */
+  height: 48px !important; /* Increase height */
+  font-size: 1.2rem !important; /* Adjust font size */
 }
