@@ -45,7 +45,7 @@ function App() {
         />
         <Route
           path="/register"
-          element={!session ? <Register /> : <Navigate to="/dashboard" />}
+          element={ <Register /> }
         />
         <Route
           path="/dashboard"
