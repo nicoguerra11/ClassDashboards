@@ -120,7 +120,7 @@ function Register() {
 
         <div className="register-header">
           <h1>Crear Cuenta</h1>
-          <p>Únete a ProfesorHub</p>
+          <p>Únete a AulaGest</p>
         </div>
 
         {error && (

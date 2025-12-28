@@ -53,7 +53,7 @@ function Login() {
         </div>
 
         <div className="login-header">
-          <h1>ProfesorHub</h1>
+          <h1>AulaGest</h1>
           <p>Bienvenido de vuelta</p>
         </div>
 

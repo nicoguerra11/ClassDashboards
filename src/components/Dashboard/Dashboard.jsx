@@ -259,7 +259,7 @@ function Dashboard({ session }) {
               <GraduationCap size={32} />
             </div>
             <div className="header-title">
-              <h1>GestorDocente</h1>
+              <h1>AulaGest</h1>
               <p>Plataforma de Gestión</p>
             </div>
           </div>
@@ -300,7 +300,7 @@ function Dashboard({ session }) {
         {activeTab === 'dashboard' && (
           <div className="dashboard-home">
             <div className="welcome-banner">
-              <h2>¡Bienvenido, {profesor.nombre}!</h2>
+              <h2>¡Bienvenido/a, {profesor.nombre}!</h2>
               <p>
                 Tienes {stats.totalEstudiantes} estudiantes y {stats.pagosPendientesTotal} pagos pendientes
               </p>
