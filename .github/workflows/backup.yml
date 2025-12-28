@@ -2,11 +2,15 @@ name: Database Backup
 
 on:
   schedule:
-    # Todos los días a las 3 AM UTC (ajustá según tu zona horaria)
+    # Todos los días a las 3 AM UTC
     - cron: '0 3 * * *'
   
-  # También permitir ejecución manual desde GitHub
+  # Permitir ejecución manual
   workflow_dispatch:
+
+# ⚠️ IMPORTANTE: Dar permisos de escritura al workflow
+permissions:
+  contents: write
 
 jobs:
   backup:
@@ -37,5 +41,5 @@ jobs:
           git config user.name "Backup Bot"
           git config user.email "backup@aulagest.app"
           git add backups/
-          git commit -m "🔒 Backup automático $(date +'%Y-%m-%d')" || echo "No hay cambios"
+          git diff --staged --quiet || git commit -m "🔒 Backup automático $(date +'%Y-%m-%d')"
           git push
