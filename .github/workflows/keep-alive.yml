@@ -21,8 +21,8 @@ jobs:
           
           # Hacer request a la API REST de Supabase
           RESPONSE=$(curl -s -w "\n%{http_code}" \
-            -X GET "${{ secrets.VITE_SUPABASE_URL }}/rest/v1/profesores?select=count" \
-            -H "apikey: ${{ secrets.VITE_SUPABASE_ANON_KEY }}" \
+            -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/profesores?select=count" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "Content-Type: application/json")
           
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
