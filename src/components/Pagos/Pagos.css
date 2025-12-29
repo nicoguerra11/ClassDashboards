@@ -385,8 +385,8 @@
 
 /* Agrandar icono calendario en la pill */
 .ph-pill svg{
-  width: 26px;
-  height: 26px;
+  width: 36px;
+  height: 36px;
 }
 .ph-pill{
   gap: 1rem;
@@ -448,7 +448,7 @@
   .ph-header p{ font-size: 0.9rem; }
 
   .ph-pill{ padding: 0.65rem 0.9rem; }
-  .ph-pill svg{ width: 22px; height: 22px; }
+  .ph-pill svg{ width: 28px; height: 28px; }
 
   .ph-searchbar{ padding: 0.65rem 0.9rem; }
   .ph-total{ padding: 0.65rem 1rem; }
