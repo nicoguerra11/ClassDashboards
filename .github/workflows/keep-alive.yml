@@ -1,0 +1,46 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # Ejecutar cada 5 días a las 3:00 AM UTC
+    # Formato: minuto hora día mes día-semana
+    # */5 en días = cada 5 días
+    - cron: '0 3 */5 * *'
+  
+  # Permite ejecutar manualmente desde GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Ping Supabase Database
+        run: |
+          echo "🔄 Haciendo ping a Supabase..."
+          
+          # Hacer request a la API REST de Supabase
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X GET "${{ secrets.VITE_SUPABASE_URL }}/rest/v1/profesores?select=count" \
+            -H "apikey: ${{ secrets.VITE_SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json")
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+          
+          echo "📊 Status Code: $HTTP_CODE"
+          echo "📦 Response: $BODY"
+          
+          if [ "$HTTP_CODE" -eq 200 ] || [ "$HTTP_CODE" -eq 201 ]; then
+            echo "✅ Supabase está activo y respondiendo correctamente"
+            exit 0
+          else
+            echo "❌ Error: Supabase respondió con código $HTTP_CODE"
+            exit 1
+          fi
+      
+      - name: Log timestamp
+        if: success()
+        run: |
+          echo "⏰ Último ping exitoso: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo "🎯 Próximo ping programado: en 5 días"

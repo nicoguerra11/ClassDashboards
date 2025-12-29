@@ -53,17 +53,38 @@ function Register() {
     }
 
     try {
-      const { error: authError } = await supabase.auth.signUp({
+      // 1. Crear usuario en auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { nombre, apellido } // el trigger lo lee de acá
+          data: { nombre, apellido }
         }
       })
 
       if (authError) throw authError
+      if (!authData?.user) throw new Error('No se pudo crear el usuario')
 
-      // Si usás confirmación por email, acá ya está bien: el trigger se ejecuta cuando se crea el user.
+      // 2. Crear registro en tabla profesores inmediatamente
+      const { error: insertError } = await supabase
+        .from('profesores')
+        .insert({
+          id: authData.user.id, // Mismo ID que auth.users
+          nombre,
+          apellido,
+          email,
+          verificado: false,
+          deshabilitado: false,
+          created_at: new Date().toISOString()
+        })
+
+      if (insertError) {
+        console.error('Error al insertar profesor:', insertError)
+        // No lanzamos error aquí porque el usuario ya fue creado en auth
+        // Pero lo mostramos al admin en consola para debugging
+      }
+
+      // 3. Cerrar sesión y mostrar mensaje de éxito
       await supabase.auth.signOut()
       setSuccess(true)
     } catch (err) {
