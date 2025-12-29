@@ -2,10 +2,10 @@ name: Keep Supabase Alive
 
 on:
   schedule:
-    # Ejecutar cada 5 días a las 3:00 AM UTC
+    # Ejecutar cada 3 días a las 3:00 AM UTC
     # Formato: minuto hora día mes día-semana
-    # */5 en días = cada 5 días
-    - cron: '0 3 */5 * *'
+    # */3 en días = cada 3 días
+    - cron: '0 3 */3 * *'
   
   # Permite ejecutar manualmente desde GitHub Actions tab
   workflow_dispatch:
@@ -43,4 +43,4 @@ jobs:
         if: success()
         run: |
           echo "⏰ Último ping exitoso: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-          echo "🎯 Próximo ping programado: en 5 días"
+          echo "🎯 Próximo ping programado: en 3 días"
