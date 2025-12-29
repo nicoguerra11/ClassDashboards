@@ -9,19 +9,15 @@
   align-items: center;
   justify-content: space-between;
   gap: .75rem;
-
   padding: 0.8rem 1rem;
   border: 2px solid #e5e7eb;
   border-radius: 14px;
-
   background: linear-gradient(135deg, rgba(255,255,255,.9), rgba(249,250,251,.95));
   backdrop-filter: blur(10px);
-
   color: #111827;
   font-weight: 700;
   font-size: 1rem;
   min-height: 52px;
-
   cursor: pointer;
   transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 8px rgba(0,0,0,.04);
@@ -73,29 +69,23 @@
   color: #7c3aed;
 }
 
-/* ========================================
-   SOLUCIÓN CRÍTICA: DESHABILITAR CLIPPING DEL MODAL
-   ======================================== */
-
-/* Cuando el datepicker está abierto, deshabilitamos el clipping del modal */
+/* ==========================================
+   MODAL OVERFLOW FIX (no jodas: esto salva vidas)
+   ========================================== */
 body.datepicker-active .ph-modal,
 .ph-modal.datepicker-open {
   overflow: visible !important;
-  /* CRÍTICO: Remover border-radius temporalmente para evitar clipping */
   border-radius: 0 !important;
 }
 
-/* Mantener el header con bordes */
 body.datepicker-active .ph-modal-header {
   border-radius: 22px 22px 0 0;
 }
 
-/* Mantener el form con bordes inferiores */
 body.datepicker-active .ph-form {
   border-radius: 0 0 22px 22px;
 }
 
-/* Forzar overflow visible en toda la jerarquía */
 body.datepicker-active .ph-modal *,
 body.datepicker-active .ph-form,
 body.datepicker-active .ph-form *,
@@ -106,15 +96,31 @@ body.datepicker-active .ph-form-group * {
   overflow: visible !important;
 }
 
-/* El popover con z-index súper alto */
+/* ==========================================
+   PERMITIR SCROLL EN MODAL MOBILE
+   ========================================== */
+@media (max-width: 520px) {
+  .ph-modal-bg.allow-scroll {
+    overflow-y: auto !important;
+    align-items: flex-start !important;
+  }
+
+  .ph-modal-bg.allow-scroll .ph-modal {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+}
+
+/* ==========================================
+   POPOVER DEL CALENDARIO
+   ========================================== */
 .ph-date-popover {
   pointer-events: auto !important;
-  /* CRÍTICO: Más alto que cualquier modal o overlay */
   z-index: 2147483647 !important;
   position: fixed !important;
-  /* Asegurar que no herede restricciones */
   overflow: visible !important;
   isolation: isolate;
+  /* maxHeight lo setea el JS por inline style */
 }
 
 .ph-date-card {
@@ -122,13 +128,16 @@ body.datepicker-active .ph-form-group * {
   backdrop-filter: blur(20px);
   border: 2px solid #e5e7eb;
   border-radius: 18px;
-  /* Sombra MÁS pronunciada para que se vea claramente */
   box-shadow: 0 25px 75px rgba(0,0,0,.30), 0 0 0 1px rgba(124,58,237,.15);
-  overflow: hidden;
+  overflow: auto; /* <-- clave: si no entra en alto, scrollea acá */
   animation: phDateIn .18s cubic-bezier(0.4, 0, 0.2, 1);
   min-width: 320px;
-  /* Asegurar que sea sólido y visible */
   opacity: 1;
+
+  /* clave para mobile y pantallas bajas */
+  max-height: calc(100vh - 24px);
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 @keyframes phDateIn {
@@ -143,6 +152,11 @@ body.datepicker-active .ph-form-group * {
   padding: .85rem .9rem;
   border-bottom: 1px solid #f3f4f6;
   gap: .5rem;
+  background: white;
+
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .ph-date-title {
@@ -164,6 +178,7 @@ body.datepicker-active .ph-form-group * {
   place-items: center;
   cursor: pointer;
   transition: all .15s;
+  flex-shrink: 0;
 }
 
 .ph-date-nav:hover {
@@ -201,6 +216,7 @@ body.datepicker-active .ph-form-group * {
   display: grid;
   place-items: center;
   position: relative;
+  font-size: 0.95rem;
 }
 
 .ph-date-day.outside {
@@ -236,7 +252,11 @@ body.datepicker-active .ph-form-group * {
   gap: .75rem;
   padding: .85rem .9rem;
   border-top: 1px solid #f3f4f6;
-  background: rgba(249,250,251,.8);
+  background: rgba(249,250,251,.95);
+
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
 }
 
 .ph-date-btn {
@@ -267,4 +287,101 @@ body.datepicker-active .ph-form-group * {
 .ph-date-btn.danger:hover {
   background: #fecaca;
   transform: translateY(-1px);
+}
+
+/* ==========================================
+   RESPONSIVE MOBILE
+   ========================================== */
+@media (max-width: 520px) {
+  .ph-date-trigger {
+    padding: 0.7rem 0.85rem;
+    min-height: 48px;
+    font-size: 0.95rem;
+  }
+
+  .ph-date-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .ph-date-card {
+    min-width: 0;
+    width: 100%;
+    border-radius: 16px;
+    max-height: calc(100vh - 24px);
+  }
+
+  .ph-date-head {
+    padding: .75rem .75rem;
+  }
+
+  .ph-date-title {
+    font-size: 0.95rem;
+  }
+
+  .ph-date-nav {
+    width: 34px;
+    height: 34px;
+  }
+
+  .ph-date-week {
+    font-size: .72rem;
+    padding: .55rem .7rem .4rem;
+    gap: .25rem;
+  }
+
+  .ph-date-grid {
+    padding: .45rem .7rem .7rem;
+    gap: .3rem;
+  }
+
+  .ph-date-day {
+    height: 36px;
+    font-size: 0.9rem;
+  }
+
+  .ph-date-actions {
+    padding: .7rem .75rem;
+    gap: .6rem;
+  }
+
+  .ph-date-btn {
+    height: 40px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .ph-date-trigger {
+    padding: 0.65rem 0.8rem;
+    min-height: 46px;
+    font-size: 0.9rem;
+  }
+
+  .ph-date-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .ph-date-card {
+    border-radius: 14px;
+  }
+
+  .ph-date-day {
+    height: 34px;
+    font-size: 0.85rem;
+  }
+
+  .ph-date-week {
+    font-size: .7rem;
+  }
+
+  .ph-date-title {
+    font-size: 0.9rem;
+  }
+
+  .ph-date-nav {
+    width: 32px;
+    height: 32px;
+  }
 }

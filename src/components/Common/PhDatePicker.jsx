@@ -49,10 +49,7 @@ function monthNameES(mIndex) {
 
 function getCalendarGrid(viewDate) {
   const first = startOfMonth(viewDate)
-
-  // lunes primero
   const startOffset = (first.getDay() + 6) % 7
-
   const start = new Date(first)
   start.setDate(first.getDate() - startOffset)
 
@@ -60,23 +57,14 @@ function getCalendarGrid(viewDate) {
   for (let i = 0; i < 42; i++) {
     const d = new Date(start)
     d.setDate(start.getDate() + i)
-
     cells.push({
       date: d,
-      inMonth:
-        d.getFullYear() === viewDate.getFullYear() &&
-        d.getMonth() === viewDate.getMonth()
+      inMonth: d.getFullYear() === viewDate.getFullYear() && d.getMonth() === viewDate.getMonth()
     })
   }
   return cells
 }
 
-/**
- * align:
- * - "center" (default): centra el popover respecto al input
- * - "left": alinea el borde izquierdo del popover con el borde izquierdo del input
- * - "right": alinea el borde derecho del popover con el borde derecho del input (abre más hacia la izquierda)
- */
 function PhDatePicker({
   value,
   onChange,
@@ -104,85 +92,99 @@ function PhDatePicker({
     if (!triggerRef.current) return
 
     const rect = triggerRef.current.getBoundingClientRect()
-    const desiredWidth = Math.max(320, rect.width)
-    
-    // Calcular left basado en align
-    let left
-    if (align === 'right') {
-      left = rect.right - desiredWidth
-    } else if (align === 'left') {
-      left = rect.left
-    } else {
-      left = rect.left + rect.width / 2 - desiredWidth / 2
-    }
-    
-    // Clamp horizontal con margen
-    left = Math.min(Math.max(12, left), window.innerWidth - desiredWidth - 12)
+    const vw = window.innerWidth
+    const vh = window.innerHeight
 
-    // Posición inicial (abajo por defecto)
+    const isMobile = vw <= 520
+
+    // márgenes seguros
+    const marginX = isMobile ? 12 : 16
+    const marginY = 12
+
+    // ancho del popover
+    const desiredWidth = isMobile
+      ? Math.max(260, vw - marginX * 2)
+      : Math.max(320, rect.width)
+
+    let left
+    if (isMobile) {
+      left = marginX
+    } else {
+      if (align === 'right') {
+        left = rect.right - desiredWidth
+      } else if (align === 'left') {
+        left = rect.left
+      } else {
+        left = rect.left + rect.width / 2 - desiredWidth / 2
+      }
+      left = Math.max(marginX, Math.min(left, vw - desiredWidth - marginX))
+    }
+
+    // alto máximo del popover (clave para que NO se corte en mobile)
+    const maxHeight = Math.max(260, vh - marginY * 2)
+
+    // top:
+    // - mobile: arriba con margen (no “centrado” porque a veces vh es chiquito y se corta)
+    // - desktop: abajo/arriba según espacio
+    let top
+    if (isMobile) {
+      top = marginY
+    } else {
+      const estimatedCardHeight = 420
+      const spaceBelow = vh - rect.bottom - marginY
+      const spaceAbove = rect.top - marginY
+
+      if (spaceBelow >= estimatedCardHeight) {
+        top = rect.bottom + 8
+      } else if (spaceAbove >= estimatedCardHeight) {
+        top = rect.top - estimatedCardHeight - 8
+      } else {
+        // si no entra, lo pegamos al margen y que scrollee interno
+        top = marginY
+      }
+    }
+
     setDropdownStyle({
       position: 'fixed',
-      top: rect.bottom + 8,
+      top,
       left,
       width: desiredWidth,
+      maxHeight,
       zIndex: 2147483647
-    })
-
-    // Después del primer render, calcular si necesita abrir arriba
-    requestAnimationFrame(() => {
-      if (!popoverRef.current) return
-
-      const popRect = popoverRef.current.getBoundingClientRect()
-      const popH = popRect.height
-      
-      const spaceBelow = window.innerHeight - rect.bottom - 16
-      const spaceAbove = rect.top - 16
-      
-      // Solo abre arriba si no cabe abajo Y hay más espacio arriba
-      const shouldOpenUp = spaceBelow < popH && spaceAbove > spaceBelow
-
-      // Recalcular left por si cambió el viewport
-      let left2
-      if (align === 'right') {
-        left2 = rect.right - desiredWidth
-      } else if (align === 'left') {
-        left2 = rect.left
-      } else {
-        left2 = rect.left + rect.width / 2 - desiredWidth / 2
-      }
-      left2 = Math.min(Math.max(12, left2), window.innerWidth - desiredWidth - 12)
-
-      setDropdownStyle({
-        position: 'fixed',
-        left: left2,
-        width: desiredWidth,
-        zIndex: 2147483647,
-        top: shouldOpenUp
-          ? Math.max(12, rect.top - popH - 8)
-          : rect.bottom + 8
-      })
     })
   }, [align])
 
   useEffect(() => {
     if (isOpen) {
-      // Agregar clase al body para deshabilitar clipping del modal
       document.body.classList.add('datepicker-active')
-      // También intentar agregar al modal más cercano
       const modal = document.querySelector('.ph-modal')
-      if (modal) modal.classList.add('datepicker-open')
+      if (modal) {
+        modal.classList.add('datepicker-open')
+        if (window.innerWidth <= 520) {
+          const modalBg = document.querySelector('.ph-modal-bg')
+          if (modalBg) modalBg.classList.add('allow-scroll')
+        }
+      }
     } else {
       document.body.classList.remove('datepicker-active')
       const modal = document.querySelector('.ph-modal')
       if (modal) modal.classList.remove('datepicker-open')
+      const modalBg = document.querySelector('.ph-modal-bg')
+      if (modalBg) modalBg.classList.remove('allow-scroll')
     }
   }, [isOpen])
 
   useEffect(() => {
     if (!isOpen) return
-    updatePosition()
+
+    // 2 raf para asegurar layout estable en mobile
+    requestAnimationFrame(() => {
+      requestAnimationFrame(updatePosition)
+    })
+
     window.addEventListener('scroll', updatePosition, true)
     window.addEventListener('resize', updatePosition)
+
     return () => {
       window.removeEventListener('scroll', updatePosition, true)
       window.removeEventListener('resize', updatePosition)
@@ -204,7 +206,6 @@ function PhDatePicker({
 
     document.addEventListener('mousedown', handleDocMouseDown)
     document.addEventListener('keydown', handleKeyDown)
-
     return () => {
       document.removeEventListener('mousedown', handleDocMouseDown)
       document.removeEventListener('keydown', handleKeyDown)
@@ -237,11 +238,7 @@ function PhDatePicker({
 
   const open = () => {
     if (disabled) return
-    setIsOpen((v) => {
-      const next = !v
-      if (next) requestAnimationFrame(updatePosition)
-      return next
-    })
+    setIsOpen(true)
   }
 
   return (
@@ -259,7 +256,6 @@ function PhDatePicker({
         <span className={value ? 'ph-date-value' : 'ph-date-placeholder'}>
           {value ? formatDisplay(value) : placeholder}
         </span>
-
         <span className="ph-date-icon">
           <Calendar size={18} />
         </span>
@@ -267,7 +263,11 @@ function PhDatePicker({
 
       {isOpen &&
         createPortal(
-          <div ref={popoverRef} className="ph-date-popover" style={dropdownStyle || { zIndex: 2147483647 }}>
+          <div
+            ref={popoverRef}
+            className="ph-date-popover"
+            style={dropdownStyle || { zIndex: 2147483647 }}
+          >
             <div className="ph-date-card">
               <div className="ph-date-head">
                 <button
@@ -278,11 +278,9 @@ function PhDatePicker({
                 >
                   <ChevronLeft size={18} />
                 </button>
-
                 <div className="ph-date-title">
                   {monthNameES(viewDate.getMonth())} {viewDate.getFullYear()}
                 </div>
-
                 <button
                   type="button"
                   className="ph-date-nav"
