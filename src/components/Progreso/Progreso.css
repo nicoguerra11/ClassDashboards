@@ -298,6 +298,25 @@
   font-weight: 600;
 }
 
+.ph-scroll-hint {
+  display: none;
+  margin: 12px 0 0;
+  padding: 8px 12px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 8px;
+  color: #5b5ef0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .ph-scroll-hint {
+    display: block;
+  }
+}
+
 /* ==== 4 CHARTS GRANDES ==== */
 .ph-chart-wrap{
   margin-top: 18px;
@@ -314,6 +333,7 @@
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
 .ph-chart-title h4{
@@ -345,6 +365,7 @@
   padding: 10px 0 34px;
   color:#64748b;
   font-weight: 900;
+  font-size: 0.85rem;
 }
 
 /* plot container */
@@ -380,6 +401,33 @@
   display:flex;
   gap: 10px;
   align-items: flex-end;
+}
+
+/* Contenedor scrolleable para móvil */
+.ph-scroll-container {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
+}
+
+.ph-scroll-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.ph-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ph-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.3);
+  border-radius: 3px;
+}
+
+.ph-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.5);
 }
 
 /* each bar is a button */
@@ -492,8 +540,7 @@
 }
 
 
-/* ✅ ESTA ERA LA PIEZA QUE FALTABA:
-   zona relativa que recorta el fill absoluto y separa del label */
+/* ✅ zona relativa que recorta el fill absoluto y separa del label */
 .ph-bar2-zone{
   position: relative;
   width: 100%;
@@ -529,7 +576,7 @@
   border-radius: 8px 8px 14px 14px;
 }
 
-/* ✅ Brillo invertido para negativos (difuminado “hacia abajo”) */
+/* ✅ Brillo invertido para negativos (difuminado "hacia abajo") */
 .ph-bar2-fill--abs.is-pos::before{
   background: linear-gradient(180deg, rgba(255,255,255,.42), transparent 45%);
 }
@@ -545,48 +592,256 @@
   transform: translateY(3px) scale(1.03);
 }
 
-/* ==== Responsive ==== */
+/* ==== Responsive Mejorado ==== */
+
+/* Tablets grandes y laptops pequeños */
 @media (max-width: 1100px) {
   .progreso-cards {
     grid-template-columns: repeat(2, minmax(230px, 1fr));
   }
+  
+  .ph-chart2 {
+    grid-template-columns: 100px 1fr;
+  }
+  
+  .ph-yaxis {
+    font-size: 0.8rem;
+  }
+  
+  .ph-bars {
+    gap: 8px;
+  }
+  
+  .ph-bar2,
+  .ph-bar2--balance {
+    width: 50px;
+  }
 }
 
+/* Tablets pequeños */
 @media (max-width: 900px) {
-  .ph-chart2{
-    grid-template-columns: 90px 1fr;
+  .ph-chart2 {
+    grid-template-columns: 80px 1fr;
   }
-  .ph-bar2{
-    width: 46px;
+  
+  .ph-yaxis {
+    font-size: 0.75rem;
+    padding: 10px 0 30px;
   }
-  .ph-bar2--balance{
-    width: 46px;
+  
+  .ph-bars {
+    gap: 6px;
+  }
+  
+  .ph-bar2,
+  .ph-bar2--balance {
+    width: 44px;
+  }
+  
+  .ph-bar2-label {
+    font-size: 0.7rem;
   }
 }
 
+/* Tablets verticales y móviles horizontales */
 @media (max-width: 800px) {
   .progreso-lists {
     grid-template-columns: 1fr;
   }
-  .ph-plot{
-    height: 180px;
+  
+  .ph-plot {
+    height: 200px;
+    padding: 16px 12px 32px;
+  }
+  
+  .ph-gridlines,
+  .ph-bars {
+    inset: 16px 12px 32px;
+  }
+  
+  .ph-chart2 {
+    grid-template-columns: 75px 1fr;
+    gap: 8px;
+  }
+  
+  .ph-yaxis {
+    font-size: 0.7rem;
+    padding: 8px 0 28px;
   }
 }
 
-@media (max-width: 520px) {
+/* Móviles: activar scroll horizontal */
+@media (max-width: 640px) {
   .progreso-cards {
     grid-template-columns: 1fr;
   }
+  
+  .ph-history-header h3 {
+    font-size: 1.1rem;
+  }
+  
+  .ph-chart-title h4 {
+    font-size: 1rem;
+  }
+  
+  .ph-chart-title span {
+    font-size: 0.85rem;
+  }
+  
+  .ph-chart2 {
+    grid-template-columns: 70px 1fr;
+    gap: 8px;
+  }
+  
+  .ph-yaxis {
+    font-size: 0.7rem;
+    padding: 8px 0 26px;
+  }
+  
+  .ph-plot {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .ph-gridlines {
+    min-width: 700px;
+  }
+  
+  .ph-bars {
+    min-width: 700px;
+    gap: 8px;
+  }
+  
+  .ph-bar2,
+  .ph-bar2--balance {
+    width: 48px;
+    gap: 8px;
+  }
+  
+  .ph-bar2-label {
+    font-size: 0.7rem;
+  }
+  
+  /* Scrollbar personalizado */
+  .ph-plot::-webkit-scrollbar {
+    height: 6px;
+  }
+  
+  .ph-plot::-webkit-scrollbar-track {
+    background: rgba(148, 163, 184, 0.1);
+    border-radius: 3px;
+  }
+  
+  .ph-plot::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.4);
+    border-radius: 3px;
+  }
+  
+  .ph-plot::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.6);
+  }
+}
+
+/* Móviles medianos */
+@media (max-width: 520px) {
   .year-input {
     width: 80px;
   }
-  .ph-bar2{
+  
+  .ph-chart-wrap {
+    padding: 14px;
+  }
+  
+  .ph-chart2 {
+    grid-template-columns: 65px 1fr;
+  }
+  
+  .ph-yaxis {
+    font-size: 0.65rem;
+  }
+  
+  .ph-plot {
+    height: 180px;
+  }
+  
+  .ph-gridlines,
+  .ph-bars {
+    min-width: 650px;
+  }
+  
+  .ph-bar2,
+  .ph-bar2--balance {
+    width: 45px;
+  }
+  
+  .ph-bar2-label {
+    font-size: 0.65rem;
+  }
+}
+
+/* Móviles pequeños */
+@media (max-width: 420px) {
+  .progreso-history {
+    padding: 16px;
+  }
+  
+  .ph-chart-wrap {
+    padding: 12px;
+  }
+  
+  .ph-chart2 {
+    grid-template-columns: 60px 1fr;
+  }
+  
+  .ph-yaxis {
+    font-size: 0.6rem;
+  }
+  
+  .ph-plot {
+    height: 170px;
+  }
+  
+  .ph-gridlines,
+  .ph-bars {
+    min-width: 600px;
+  }
+  
+  .ph-bar2,
+  .ph-bar2--balance {
+    width: 42px;
+  }
+  
+  .ph-bar2-label {
+    font-size: 0.6rem;
+  }
+}
+
+/* Móviles muy pequeños */
+@media (max-width: 360px) {
+  .ph-chart2 {
+    grid-template-columns: 55px 1fr;
+  }
+  
+  .ph-yaxis {
+    font-size: 0.55rem;
+  }
+  
+  .ph-plot {
+    height: 160px;
+  }
+  
+  .ph-gridlines,
+  .ph-bars {
+    min-width: 550px;
+  }
+  
+  .ph-bar2,
+  .ph-bar2--balance {
     width: 40px;
   }
-  .ph-bar2--balance{
-    width: 40px;
-  }
-  .ph-yaxis{
-    font-size: .9rem;
+  
+  .ph-bar2-label {
+    font-size: 0.55rem;
   }
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../supabaseClient'
-import { TrendingUp, DollarSign, Receipt, Users, Calendar, History } from 'lucide-react'
+import { TrendingUp, DollarSign, Receipt, Users, Calendar, History, MoveHorizontal } from 'lucide-react'
 import './Progreso.css'
 
 import CustomSelect from '../Common/CustomSelect'
@@ -330,6 +330,10 @@ function Progreso({ profesorId }) {
             <History size={20} /> Historial (últimos 12 meses)
           </h3>
           <p>Clickeá una barra para cambiar el mes.</p>
+          <div className="ph-scroll-hint">
+            <MoveHorizontal size={16} style={{ display: 'inline', marginRight: '6px' }} />
+            Deslizá horizontalmente para ver todos los meses
+          </div>
         </div>
 
         {/* COBRADO */}
