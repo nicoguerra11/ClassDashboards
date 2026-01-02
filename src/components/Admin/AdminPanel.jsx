@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../../supabaseClient'
+import { supabase, supabaseAdmin } from '../../supabaseClient'
 import { useNavigate } from 'react-router-dom'
 import {
   Shield,
@@ -13,7 +13,8 @@ import {
   RefreshCw,
   Trash2,
   Ban,
-  Check
+  Check,
+  Key
 } from 'lucide-react'
 import './AdminPanel.css'
 
@@ -132,6 +133,53 @@ function AdminPanel() {
     } catch (error) {
       console.error('Error al eliminar profesor:', error)
       alert('Error al eliminar profesor: ' + error.message)
+    }
+  }
+
+  // ✅ NUEVA FUNCIÓN: Resetear contraseña
+  const resetearPassword = async (profesorId, email) => {
+    const nuevaPassword = prompt(
+      `🔑 Ingresá una nueva contraseña para ${email}:\n\n` +
+      `(Mínimo 6 caracteres)\n` +
+      `Luego comunicate con el profesor para darle su nueva contraseña.`
+    )
+
+    if (!nuevaPassword) return
+
+    if (nuevaPassword.length < 6) {
+      alert('❌ La contraseña debe tener al menos 6 caracteres')
+      return
+    }
+
+    if (!confirm(`¿Confirmar nueva contraseña para ${email}?`)) return
+
+    try {
+      // Actualizar contraseña usando admin API con Service Role Key
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(
+        profesorId,
+        { password: nuevaPassword }
+      )
+
+      if (error) throw error
+
+      // Mostrar la contraseña para que puedas copiarla
+      const copiar = confirm(
+        `✅ Contraseña actualizada exitosamente!\n\n` +
+        `Nueva contraseña: ${nuevaPassword}\n\n` +
+        `¿Querés copiarla al portapapeles?`
+      )
+
+      if (copiar) {
+        navigator.clipboard.writeText(nuevaPassword)
+        alert('📋 Contraseña copiada al portapapeles')
+      }
+    } catch (error) {
+      console.error('Error al resetear contraseña:', error)
+      alert(
+        '❌ Error al resetear contraseña\n\n' +
+        'Detalles: ' + error.message + '\n\n' +
+        'Verificá que el Service Role Key esté configurado correctamente en .env'
+      )
     }
   }
 
@@ -362,6 +410,16 @@ function AdminPanel() {
                 </div>
 
                 <div className="admin-card-actions">
+                  {/* ✅ NUEVO BOTÓN: Resetear contraseña */}
+                  <button 
+                    className="admin-action-btn password" 
+                    onClick={() => resetearPassword(profesor.id, profesor.email)}
+                    title="Cambiar contraseña"
+                  >
+                    <Key size={18} />
+                    Resetear Password
+                  </button>
+
                   {profesor.deshabilitado ? (
                     <button className="admin-action-btn success" onClick={() => deshabilitarProfesor(profesor.id, true)}>
                       <Check size={18} />

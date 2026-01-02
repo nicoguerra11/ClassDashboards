@@ -525,3 +525,12 @@
   .admin-header-inner { padding: 1.2rem 1rem; }
   .admin-card-actions { min-width: 100%; }
 }
+/* ✅ Estilo para botón de password */
+.admin-action-btn.password { 
+  background: linear-gradient(135deg, #7c3aed, #a855f7); 
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+}
+
+.admin-action-btn.password:hover {
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.35);
+}
