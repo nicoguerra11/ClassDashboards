@@ -110,10 +110,15 @@ function Pagos({ profesorId }) {
     label: getMesNombre(i + 1)
   }))
 
-  const yearOptions = [2023, 2024, 2025, 2026, 2027, 2028].map((y) => ({
-    value: y,
-    label: y.toString()
-  }))
+  // ✅ ARREGLADO: Generar años dinámicamente igual que en Gastos
+  const yearOptions = useMemo(() => {
+    const startYear = 2023
+    const endYear = new Date().getFullYear() + 3
+    return Array.from({ length: endYear - startYear + 1 }, (_, i) => {
+      const y = startYear + i
+      return { value: y, label: String(y) }
+    })
+  }, [])
 
   const tipoOptions = [
     { value: 'mensual', label: 'Pago mensual' },
