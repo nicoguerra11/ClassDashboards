@@ -1,0 +1,13 @@
+{
+  "fecha": "2026-01-19",
+  "hora": "2026-01-19T04:11:51.834Z",
+  "version": "1.0",
+  "datos": {
+    "profesores": [],
+    "estudiantes": [],
+    "ingresos": [],
+    "gastos": [],
+    "pagos": [],
+    "asistencias": []
+  }
+}
